@@ -1,0 +1,156 @@
+script(src="/static/js/shared/jobtemplate.js")
+
+script#job-run(type="text/x-template")
+  div
+    app-content-title(:title="'Create ' + job.name + ' (' + job.id + ')'")
+    .row
+      .col
+        p Define the desired values or ranges for all the variables available for this job template in order to spawn as many jobs as desired.
+        p All jobs will be enqueued once created (the order is not guaranteed).
+
+    .row
+      .col
+        .form-template-vars(v-for="tvar in template_variables")
+          .form-row(v-if="tvar.range")
+            .col-2
+              label {{ tvar.name }}
+
+            .col-1.align-right
+              label from:
+
+            .col-2
+              input.form-control(v-model="tvar.start", :type="tvar.htmltype", required)
+
+            .col-1.align-right
+              label to:
+
+            .col-2
+              input.form-control(v-model="tvar.end", :type="tvar.htmltype", required)
+
+            .col-2.text
+              span ( {{ tvar.type }} )
+
+          .form-row(v-else)
+            .col-2
+              label {{ tvar.name }}
+
+            .col-1.align-right
+              label value:
+
+            .col-2
+              input.form-control(v-model="tvar.value", :type="tvar.htmltype", required)
+
+            .col-2.text
+              span ( {{ tvar.type }} )
+
+    .row.mt-4.mb-1
+      .col-2
+        | Total: {{ expanded_job_count }} jobs
+
+      .offset-8.col-2.align-right
+          .btn.btn-outline-info.btn-sm(@click="updateJobSelection (-1)")
+            i.fas.fa-angle-left
+
+          span.ml-4.mr-4
+            | Job {{ expanded_job_index + 1 }} of {{ expanded_job_count }}
+
+          .btn.btn-outline-info.btn-sm(@click="updateJobSelection (+1)")
+            i.fas.fa-angle-right
+
+    .row
+      .col
+        pre.alert.alert-info
+          | {{ expanded_job_selected }}
+
+    .row.mt-4
+      .col
+        .btn.btn-success
+          span Create &amp; Run {{ expanded_job_count }} Jobs
+            i.fas.fa-play-circle.ml-2
+
+script.
+  const JobRunComponent = Vue.component ('job-run', {
+    template : '#job-run',
+    data : function () {
+      return {
+        job : { template : '' },
+        template_variables : [],
+
+        expanded_jobs         : [],
+        expanded_job_count    : 1,
+        expanded_job_selected : '',
+        expanded_job_index    : 0
+      };
+    },
+    created : function () {
+      this.fetchJobInfo()
+    },
+    watch: {
+      template_variables : {
+        handler(old, newval) {
+          this.expanded_job_count = jobVariablesExpandedCount (this.template_variables);
+
+          if (this.expanded_job_count < 10000) {
+            this.expanded_jobs = jobTemplateExpandVariables (
+              this.job.template,
+              this.template_variables
+            );
+          }
+          else {
+            this.expanded_jobs = [];
+          }
+
+          this.updateJobSelection(0);
+        },
+        deep: true
+      },
+
+      // reload data if users selects another job
+      "$route.params.job_name" : function() {
+        this.fetchJobInfo()
+      }
+    },
+    methods : {
+      fetchJobInfo : function () {
+        const self = this;
+        fetch('/api/jobs/get/' + this.$route.params.job_name).then (function (response) {
+          // (response.status === 200)
+          response.json().then (function (data) {
+            // prepare values with the defaults & set HTML5 type
+            for (let [index, tvar] of data.template_variables.entries()) {
+              tvar.htmltype = getHtml5TypeForJobDataType(tvar.type);
+
+              if (tvar.range) {
+                tvar.start = tvar.end = tvar.default;
+              }
+              else {
+                tvar.value = tvar.default;
+              }
+
+              Vue.set (self.template_variables, index, tvar);
+            }
+
+            self.job = data;
+          })
+        });
+      },
+
+      updateJobSelection : function (increment) {
+        // adjust increment & boundaries
+        if (
+          ((this.expanded_job_index + increment) < this.expanded_jobs.length) &&
+          ((this.expanded_job_index + increment) >= 0)
+        ) {
+          this.expanded_job_index += increment;
+        }
+
+        // update selection message
+        if (this.expanded_job_count > 10000) {
+          this.expanded_job_selected = "Woops! More than 10k jobs created, we won't show that in the browser";
+          return;
+        }
+
+        this.expanded_job_selected = this.expanded_jobs[this.expanded_job_index];
+      }
+    }
+  });

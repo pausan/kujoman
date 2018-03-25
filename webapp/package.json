@@ -1,0 +1,42 @@
+{
+  "name": "kujoman",
+  "version": "0.1.0",
+  "description": "kubernetes job manager",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "nodemon": "nodemon -V -e js,json,pug,vue index.js"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "test/*",
+      "docs/*",
+      "node_modules/*"
+    ],
+    "ext": [
+      "js",
+      "json",
+      "pug"
+    ]
+  },
+  "keywords": [
+    "kubernetes",
+    "k8s",
+    "job",
+    "task",
+    "manager",
+    "scheduler",
+    "cron"
+  ],
+  "author": "Pau Sanchez",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "compression": "^1.7.2",
+    "express": "^4.16.3",
+    "pug": "^2.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^1.17.2"
+  }
+}

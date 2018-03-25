@@ -1,0 +1,49 @@
+script#app-settings(type="text/x-template")
+  div
+    app-content-title(title="Settings")
+
+    | TODO: not implemented yet
+    pre.
+       Kujoman > Settings [Static At First]
+
+       Runners:
+        - Number of pod runners  [1]
+
+       Job Queue:
+        - Type:               [GCloud PubSub]
+
+        - [GCloud Project] c> [GCloud PubSub Topic]
+        -                  >> [GCloud PubSub Subscriber]
+
+       Database:
+        - Type:            [GCloud Datastore]
+        - EntityPrefix:    [kujoman]
+        - Credentials:     [--]
+
+      --------------------------------------------------------------------------------
+      NOTE: The initial configuration of kujoman can be static, passed as ENV vars on the deployment
+      or some secret or similar... view only (or even inexistent, is a nice to have, but not mandatory)
+      --------------------------------------------------------------------------------
+script.
+  const AppSettings = Vue.component ('app-settings', {
+    template : '#app-settings',
+    data: function () {
+      return {
+        jobs : []
+      }
+    },
+    created: function() {
+      this.fetchAllJobs();
+    },
+    methods : {
+      fetchAllJobs : function () {
+        const self = this;
+        fetch('/api/jobs/all').then (function (response) {
+          // (response.status === 200)
+          response.json().then (function (data) {
+            self.jobs = data;
+          })
+        });
+      }
+    }
+  });

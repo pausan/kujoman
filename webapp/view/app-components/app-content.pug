@@ -1,0 +1,8 @@
+script#app-content(type="text/x-template")
+  main.col-md-10.ml-sm-auto.col-lg-10.pt-3.px-4(role='main')
+    router-view
+
+script.
+  Vue.component ('app-content', {
+    template : '#app-content'
+  })

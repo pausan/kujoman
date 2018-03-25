@@ -1,0 +1,72 @@
+doctype html
+html(lang='en')
+  head
+    meta(http-equiv="Content-Type", content="text/html; charset=utf-8")
+    meta(charset='utf-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1, shrink-to-fit=no')
+    meta(name='description', content='Kubernetes Job Manager')
+    meta(name='author', content='Pau Sanchez')
+    link(rel='icon', href='/favicon.ico')
+
+    title Kujoman Dashboard
+
+    link(href='/thirdparty/bootstrap/css/bootstrap.min.css', rel='stylesheet')
+    link(href='/css/default.css', rel='stylesheet')
+    link(href="/thirdparty/fontawesome/css/fontawesome-all.css", rel="stylesheet")
+
+  body
+
+    div#app
+      app-header
+      .container-fluid
+        .row
+          app-sidebar(v-bind:jobs="jobs")
+          app-content(v-bind:jobs="jobs")
+
+    //- Development!
+    script(src="/thirdparty/vue/vue.js")
+
+    //- Production!
+    //-script(src="/thirdparty/vue/vue.min.js")
+    script(src="/thirdparty/vue/vue-router.js")
+
+    include ./app-components/index.pug
+    include ./job-components/index.pug
+
+    script.
+      const router = new VueRouter({
+        mode: 'history',
+        routes: [
+          { path: '/dashboard', component: AppDashboard },
+          { path: '/settings', component: AppSettings },
+          { path: '/job/create', component: JobCreateComponent },
+          { path: '/job/:job_name/overview', component: JobOverviewComponent },
+          { path: '/job/:job_name/view', component: JobViewComponent },
+          // TODO: { path: '/job/:job_name/history', component: JobHistoryComponent },
+          { path: '/job/:job_name/run', component: JobRunComponent },
+          { path: '/job/:job_name/schedule', component: JobScheduleComponent },
+          { path: '/job/:job_name/configure', component: JobConfigureComponent },
+        ]
+      });
+
+      const app = new Vue({
+        el: '#app',
+        router: router,
+        data: {
+          jobs : []
+        },
+        created: function() {
+          this.fetchAllJobs();
+        },
+        methods : {
+          fetchAllJobs : function () {
+            const self = this;
+            fetch('/api/jobs/all').then (function (response) {
+              // (response.status === 200)
+              response.json().then (function (data) {
+                self.jobs = data;
+              })
+            });
+          }
+        }
+      })

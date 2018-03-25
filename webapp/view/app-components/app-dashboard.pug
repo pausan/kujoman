@@ -1,0 +1,46 @@
+script#app-dashboard(type="text/x-template")
+  div
+    app-content-title(title="Dashboard")
+
+    h3 Metrics
+    .table-responsive
+      table.table.table-striped.table-sm
+        thead
+          tr
+            th Job Name
+            th # Running
+            th # Waiting
+            th # Failed
+            th # Successful
+
+        tbody
+          tr(v-for="job in jobs")
+            td {{ job.display_name }}
+            td {{ job.stats.running }}
+            td {{ job.stats.waiting }}
+            td {{ job.stats.failed }}
+            td {{ job.stats.successful }}
+
+script.
+  const AppDashboard = Vue.component ('app-dashboard', {
+    template : '#app-dashboard',
+    data: function () {
+      return {
+        jobs : []
+      }
+    },
+    created: function() {
+      this.fetchAllJobs();
+    },
+    methods : {
+      fetchAllJobs : function () {
+        const self = this;
+        fetch('/api/jobs/all').then (function (response) {
+          // (response.status === 200)
+          response.json().then (function (data) {
+            self.jobs = data;
+          })
+        });
+      }
+    }
+  });

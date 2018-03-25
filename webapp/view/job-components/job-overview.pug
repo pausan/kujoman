@@ -1,0 +1,40 @@
+
+script#job-overview(type="text/x-template")
+  div
+    | job overview! {{ $route.params.job_name }}
+    pre.
+      Kujoman > MyFirstJob > Overview
+
+      Filter: [x] Running (_only_)   [ ] Pending (_only_)   [x] Successful (_only_)   [ ] Failed (_only_)
+
+              o Today | * This Week | o This Month | o Last 7 days | o Last 30 days | o Last 90 days | o Always  <-- select?
+
+      +---------+---------------------+---------------------+----------+---------+---------------------+
+      | Job Id  | Time Started        | Time Finished       | Duration | Status  | Actions             |
+      +---------+---------------------+---------------------+----------+---------+---------------------+
+      | 928aak6 | 2018-09-01 10:44:10 |                     |    337 s | Running | _Details_ - _Clone_ |
+      | 928aak6 | 2018-09-01 10:44:32 | 2018-09-01 10:46:37 |    125 s | Success | _Details_ - _Clone_ |
+      | 928aak5 | 2018-09-01 10:44:33 | 2018-09-01 10:46:35 |     73 s | Success | _Details_ - _Clone_ |
+      | 928aak4 | 2018-09-01 10:43:32 | 2018-09-01 10:44:33 |     65 s | Success | _Details_ - _Clone_ |
+      | 928aak3 | 2018-09-01 10:42:32 | 2018-09-01 10:41:37 |     65 s | Success | _Details_ - _Clone_ |
+      | 928aak2 | 2018-09-01 10:41:32 | 2018-09-01 10:46:37 |     65 s | Success | _Details_ - _Clone_ |
+      | 928aak1 | 2018-09-01 09:10:32 | 2018-09-01 10:46:37 |     65 s | Success | _Details_ - _Clone_ |
+      +---------+---------------------+---------------------+----------+---------+---------------------+
+
+
+      --------------------------------------------------------------------------------
+      Notes: this view is displayed using the database
+      _Details_ -> go to Single Job View
+      _Clone_   -> go to Runner and preinitialize variables, but don't schedule
+      _Reschedule_ -> if a job failed the user should be able to reschedule it (which is equivalent to Clone->Run)
+                      Set status as FailedAndRescheduled
+
+      Allow bulk actions (bulk remove pending, RescheduleFailed, ...)
+      --------------------------------------------------------------------------------
+
+script.
+  // NOTE: reference job-view when clicking a particular job
+  const JobOverviewComponent = Vue.component ('job-overview', {
+    template : '#job-overview'
+  });
+

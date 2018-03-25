@@ -1,0 +1,38 @@
+script#job-view(type="text/x-template")
+  div
+    | job view! {{ $route.params.job_name }}
+    pre.
+      Kujoman > MyFirstJob > Job Viewer > Single Job - 928aak6
+
+       Time Started  : 2018-09-01 10:44:32
+       Time Finished : 2018-09-01 10:46:37
+       Duration      : 125 seconds
+       Status        : Successful
+
+       / Output \/ Template Parameters\/ Kubernetes Job Expanded \
+       **********----------------------------------------------------------------------
+      | This is the output from the job...                                            |
+      | ...                                                                           |
+      \-------------------------------------------------------------------------------/
+
+       / Output \/ Template Parameters\/ Kubernetes Job Expanded \
+       ----------**********************------------------------------------------------
+      | VAR1: value 1                                                                 |
+      | VAR2: value 2                                                                 |
+      | VAR3: value 3                                                                 |
+      \-------------------------------------------------------------------------------/
+
+       / Output \/ Template Parameters\/ Kubernetes Job Expanded \
+       --------------------------------***************************---------------------
+      | kubernetes job YAML with variables expanded                                   |
+      | ...                                                                           |
+      \-------------------------------------------------------------------------------/
+
+      --------------------------------------------------------------------------------
+      Notes: this view is displayed using the database
+      --------------------------------------------------------------------------------
+
+script.
+  const JobViewComponent = Vue.component ('job-view', {
+    template : '#job-view'
+  });

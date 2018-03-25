@@ -1,0 +1,5 @@
+webapp/node_modules
+temp/
+webapp/static/thirdparty/fontawesome-free-5.0.8/
+*.sublime-*
+prototype-*.txt

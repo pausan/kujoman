@@ -1,0 +1,50 @@
+script#app-sidebar(type="text/x-template")
+  nav.col-md-2.d-none.d-md-block.sidebar
+    .sidebar-sticky
+      ul.nav.flex-column
+        li.nav-item
+          router-link.nav-link(to='/dashboard')
+            i.fas.fa-home Dashboard
+
+        li.nav-item
+          router-link.nav-link(to='/job/create')
+            i.fas.fa-plus Create Job Template
+
+        li.nav-item(v-for="job in jobs")
+          .nav-link
+            .row
+              .col-md-10
+                i.fas.fa-angle-double-right
+                  | {{ job.name }}
+              .col-md-2
+                i.fas.fa-angle-down
+            ul.nav.flex-column
+              li.nav-item
+                router-link.nav-link(:to="'/job/' + job.id + '/overview'")
+                  i.fas.fa-heartbeat Overview
+
+              li.nav-item
+                router-link.nav-link(:to="'/job/' + job.id + '/run'")
+                  i.fas.fa-tasks Job Runner
+
+              li.nav-item
+                router-link.nav-link(:to="'/job/' + job.id + '/schedule'")
+                  i.fas.fa-stopwatch Job Scheduler
+
+              li.nav-item
+                router-link.nav-link(:to="'/job/' + job.id + '/history'")
+                  i.fas.fa-history Job History
+
+              li.nav-item
+                router-link.nav-link(:to="'/job/' + job.id + '/configure'")
+                  i.fas.fa-wrench Configure
+
+        li.nav-item
+          router-link.nav-link(to='/settings')
+            i.fas.fa-cog Settings
+
+script.
+  Vue.component ('app-sidebar', {
+    props : ['jobs'],
+    template : '#app-sidebar'
+  });

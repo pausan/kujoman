@@ -1,0 +1,36 @@
+script#job-schedule(type="text/x-template")
+  div
+    | schedule my job!!! {{ $route.params.job_name }}
+
+    pre.
+      - VAR1 (Date Range)   Start Date: [2018-01-01]  End Date: [2018-01-04]
+      - VAR2 (Item List)    [a, b, c, d]
+      - VAR3 (Fixed Value)  [this is the value]
+
+      - Schedule:
+         Schedule Time: [10:10]
+
+         - Once
+         - Repeats
+          * Daily
+
+          - Weekly
+            [x] Monday [ ] Tuesday [ ] Wednesday [ ] Thursday [ ] Friday [ ] Saturday [ ] Sunday
+
+            At: [10:10]
+
+          - Customize
+            Repeat every [2] [days|weeks|months]
+
+            Finishes:
+              * Never
+              - Yes on [10 of April 2018]
+              - After [32] repetitions
+
+
+        API: [POST /api/jobname/schedule-job]
+
+script.
+  const JobScheduleComponent = Vue.component ('job-schedule', {
+    template : '#job-schedule'
+  });
