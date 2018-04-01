@@ -15,7 +15,7 @@ script#app-dashboard(type="text/x-template")
 
         tbody
           tr(v-for="job in jobs")
-            td {{ job.display_name }}
+            td {{ job.name }}
             td {{ job.stats.running }}
             td {{ job.stats.waiting }}
             td {{ job.stats.failed }}
@@ -38,7 +38,7 @@ script.
         fetch('/api/jobs/all').then (function (response) {
           // (response.status === 200)
           response.json().then (function (data) {
-            self.jobs = data;
+            Vue.set (self, 'jobs', data);
           })
         });
       }

@@ -21,7 +21,7 @@ html(lang='en')
       .container-fluid
         .row
           app-sidebar(v-bind:jobs="jobs")
-          app-content(v-bind:jobs="jobs")
+          app-content(v-bind:jobs="jobs", @refresh-jobs="refreshJobs")
 
     //- Development!
     script(src="/thirdparty/vue/vue.js")
@@ -29,6 +29,9 @@ html(lang='en')
     //- Production!
     //-script(src="/thirdparty/vue/vue.min.js")
     script(src="/thirdparty/vue/vue-router.js")
+
+    script.
+      let g_store = {};
 
     include ./app-components/index.pug
     include ./job-components/index.pug
@@ -57,14 +60,27 @@ html(lang='en')
         },
         created: function() {
           this.fetchAllJobs();
+          g_store.app = this;
         },
         methods : {
-          fetchAllJobs : function () {
+          // -------------------------------------------------------------------
+          // refreshJobs
+          //
+          // event triggered from children to force reload all jobs and go to
+          // a certain page. Useful when creating or deleting some job templates.
+          // -------------------------------------------------------------------
+          refreshJobs (page) {
+            this.fetchAllJobs().then (() => {
+              router.push (page);
+            });
+          },
+
+          fetchAllJobs () {
             const self = this;
-            fetch('/api/jobs/all').then (function (response) {
+            return fetch('/api/jobs/all').then (function (response) {
               // (response.status === 200)
               response.json().then (function (data) {
-                self.jobs = data;
+                Vue.set (self, 'jobs', data);
               })
             });
           }

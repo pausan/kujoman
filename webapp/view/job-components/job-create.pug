@@ -2,51 +2,68 @@ script#job-create(type="text/x-template")
   div
     app-content-title(title="Create Job")
 
-    div
+    job-upsert(
+      :is_update="false",
+      :job_name="job_name",
+      @update-job-name="updateJobName"
 
-      | create my job!!! {{ $route.params.job_name }}
+      :job_template="job_template",
+      @update-job-template="updateJobTemplate"
 
-//
-  - VAR1 (Date Range)   Start Date: [2018-01-01]  End Date: [2018-01-04]
-  - VAR2 (Item List)    [a, b, c, d]
-  - VAR3 (Fixed Value)  [this is the value]
+      :job_variables="job_variables",
+      @update-job-variables="updateJobVariables"
 
-  >> Note: 104 jobs will be created when expanding ranges
-
-  [Create Job]
-
-  >> API: [POST /api/jobname/create-job]
-
-
+      @reset-defaults="resetJobDefaults"
+      @refresh-jobs="refreshJobs"
+    )
 
 script.
+  const g_defaultJobTemplate =
+    `apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: {NAME}
+    spec:
+      template:
+        spec:
+          containers:
+          - name: {NAME}
+            image: {IMAGE}
+            imagePullPolicy: Always
+            command: ["perl",  "-wle", "print {NAME}"]
+          restartPolicy: Never
+      backoffLimit: 6`;
+
+  // simple way to preserve app status
+  g_store.job_create = {
+    job_name : '',
+    job_template : g_defaultJobTemplate,
+    job_variables : []
+  };
+
   const JobCreateComponent = Vue.component ('job-create', {
     template : '#job-create',
     data : function () {
-      return {
-        template_focused : false,
-        undefined_template_variables : ['MYVAR1', 'MYVAR2'],
-        job : false,
-      };
-    },
-    created : function () {
-      this.fetchJobInfo()
-    },
-    watch: {
-      // reload data if users selects another job
-      "$route.params.job_name" : function() {
-        this.fetchJobInfo()
-      }
+      return g_store.job_create;
     },
     methods : {
-      fetchJobInfo : function () {
-        const self = this;
-        fetch('/api/jobs/get/' + this.$route.params.job_name).then (function (response) {
-          // (response.status === 200)
-          response.json().then (function (data) {
-            self.job = data;
-          })
-        });
+      // called from children
+      updateJobName (val) {
+        this.job_name = val;
+      },
+      updateJobTemplate (val) {
+        this.job_template = val;
+      },
+      updateJobVariables (val) {
+        this.job_variables = val;
+      },
+      resetJobDefaults () {
+        g_store.job_create.job_name = '';
+        g_store.job_create.job_template = g_defaultJobTemplate;
+        g_store.job_create.job_variables = [];
+      },
+      refreshJobs (page) {
+        this.$emit ('refresh-jobs', page)
       }
     }
   });

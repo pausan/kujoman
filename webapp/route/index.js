@@ -6,13 +6,14 @@
 module.exports = function routeExports (context) {
   const app = context.express;
 
-  // app.get(
-  //   '/api/...',
-  //   context.controller.api....
-  // );
+  app.post ('/api/jobs/create', context.controller.api.jobs.createJob);
+  app.post ('/api/jobs/update', context.controller.api.jobs.updateJob);
+  app.all ('/api/jobs/delete/:id', context.controller.api.jobs.deleteJobById);
 
-  app.get ('/api/jobs/all', context.controller.api.jobs.getAllJobs)
-  app.get ('/api/jobs/get/:id', context.controller.api.jobs.getJobById)
+  app.get ('/api/jobs/all', context.controller.api.jobs.getAllJobs);
+  app.get ('/api/jobs/get/:id', context.controller.api.jobs.getJobById);
+
+  app.get ('/api/settings', context.controller.api.settings.getSettings);
 
   // we use HTML5 history mode on the frontend, so we should always show
   // the same route

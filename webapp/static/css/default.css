@@ -100,7 +100,7 @@ body {
  */
 label {
   font-weight: bolder;
-  font-size: 1rem;
+  font-size:   1rem;
 }
 
 #job-template {
@@ -111,11 +111,6 @@ label {
 
 #job-template.large-template {
   height: 30rem;
-}
-
-/* font awesome icon separation */
-i.fas:before {
-  padding-right: 0.5rem;
 }
 
 .align-right {

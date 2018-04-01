@@ -17,3 +17,12 @@ as a queue.
 
 NOTE: GCloud Storage can also be used for logging results.
 
+
+
+## Development notes
+
+Launch local datastore emulator for development:
+
+```sh
+  $ gcloud beta emulators datastore start --no-store-on-disk
+```

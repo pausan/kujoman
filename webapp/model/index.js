@@ -3,6 +3,9 @@
 // -----------------------------------------------------------------------------
 'use strict';
 
-module.exports = function moduleExports (context) {
-  return {};
+module.exports = function controllerApi (context) {
+  const jobs = require ('./jobs')(context);
+  return {
+    jobs: jobs
+  };
 }

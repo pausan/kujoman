@@ -1,111 +1,21 @@
 script#job-configure(type="text/x-template")
   div
-    app-content-title(:title="'Configure ' + job.name + ' (' + job.id + ')'")
+    app-content-title(:title="'Configure ' + job_name + ' (' + job_id + ')'")
 
-    form(@submit.prevent, v-if="job")
-      .form-group
-        label Job Name:
-        input#job-display-name.form-control(type='text', placeholder='Enter job name...', v-model="job.name")
+    job-upsert(
+      :is_update="true",
+      :job_id="job_id",
+      :job_name="job_name",
+      @update-job-name="updateJobName"
 
-      .form-group
-        label Kubernets Job Template (use YAML):
-        .alert.alert-warning(v-if="template_focused")
-          | click outside the textarea to minimize again
-        textarea#job-template.form-control(
-          type='text',
-          placeholder='write your kubernetes YAML job template here...',
-          v-model="job.template",
-          :class="{ 'large-template': template_focused }"
-          @focus="template_focused = true",
-          @blur="template_focused = false"
-        )
-        div.row
-          span.col-sm-10
-            | Use uppercase {VARS} with no spaces to define template variables
+      :job_template="job_template",
+      @update-job-template="updateJobTemplate"
 
-          a.col-sm-2(href="https://kubernetes.io/docs/concepts/workloads/controllers/jobs-run-to-completion/", target="_blank")
-            | Kubernetes Job Syntax
+      :job_variables="job_variables"
+      @update-job-variables="updateJobVariables"
 
-      .form-group
-        label Template Variables:
-        .alert.alert-danger(v-if="undefined_template_variables.length > 0")
-          | Undefined template variables:
-          ul.no-margin
-            li(v-for="tvar in undefined_template_variables")
-              | {{ tvar }}
-
-        .alert.alert-info
-          .form-row
-            .col-2
-              label Name:
-
-            .col-2
-              label Type:
-
-            .col-2
-              label Default Value:
-
-          .form-row(v-for="tvar in job.template_variables")
-            .col-2
-              label {{ tvar.name }}
-
-            .col-2
-              select.form-control(v-model="tvar.type")
-                option(value="date") date (yyyy-mm-dd)
-                option(value="integer") integer
-                option(value="string") string
-                option(value="date_range") date range (yyyy-mm-dd)
-                option(value="integer_range") integer range
-
-            .col-2
-              input.form-control(v-model="tvar.default")
-
-      .form-group.mt-4
-        label Kubernetes Configuration:
-        .row
-          .col.ml-3.alert.alert-primary
-
-            .form-row
-              .col-2
-                label Kubernetes Provider:
-
-              .col-2
-                select.form-control(v-model="job.kubernetes.provider")
-                  option(value="gcloud") Google Cloud
-
-              // FIXME! simplify the layout
-            .form-row
-              .col-2
-                label GCloud Project:
-              .col-2
-                input.form-control(v-model="job.kubernetes.gcloud_project")
-
-            .form-row
-              .col-2
-                label GKE Cluster:
-
-              .col-2
-                input.form-control(v-model="job.kubernetes.gcloud_cluster")
-
-            .form-row
-              .col-2
-                label Max. Parallel Runners:
-
-              .col-2
-                input.form-control(v-model="job.kubernetes.max_parallel_runners")
-
-            .form-row
-              .col-2
-                label Autoscale Nodes:
-
-              .col-2
-                select.form-control(v-model="job.kubernetes.autoscale")
-                  option(value="false") Disabled
-                  option(value="true") Enabled
-
-      .btn.btn-large.btn-success
-        i.fas.fa-save Save
-
+      @refresh-jobs="refreshJobs"
+    )
 
 script.
   const JobConfigureComponent = Vue.component ('job-configure', {
@@ -113,8 +23,11 @@ script.
     data : function () {
       return {
         template_focused : false,
-        undefined_template_variables : ['MYVAR1', 'MYVAR2'],
-        job : false,
+        data_changed : false,
+        job_id : false,
+        job_name : '',
+        job_template : '',
+        job_variables : []
       };
     },
     created : function () {
@@ -131,16 +44,42 @@ script.
         const self = this;
         fetch('/api/jobs/get/' + this.$route.params.job_name).then (function (response) {
           // (response.status === 200)
-          response.json().then (function (data) {
-            self.job = data;
+          response.json().then (function (job) {
+            self.job_id = job.id;
+            self.job_name = job.name;
+            self.job_template = job.template;
+            Vue.set (self, 'job_variables', job.variables);
+            self.data_changed = false;
           })
         });
       },
-      enlargeTemplateHeight : function () {
-        console.log ("Got focus!!")
+      refreshJobs (page) {
+        this.$emit ('refresh-jobs', page)
       },
-      restoreTemplateHeight : function () {
-        console.log ("Got restoreTemplateHeight!!")
+
+      // called from children
+      updateJobName (val) {
+        if (this.job_name != val)
+          this.data_changed = true;
+      },
+      updateJobTemplate (val) {
+        if (this.job_template != val)
+          this.data_changed = true;
+      },
+      updateJobVariables (val) {
+        // if (JSON.stringify(this.job_variables) != JSON.stringify(val))
+        this.data_changed = true;
       }
-    }
+    },
+
+    /*
+    // before navigating away, make sure the user is not going to lose changes
+    beforeRouteLeave : function (to, from, next) {
+      if (!this.data_changed) {
+        return next();
+      }
+
+      const answer = window.confirm('You have unsaved changes. Are you fine losing them?')
+      next(answer);
+    }*/
   });

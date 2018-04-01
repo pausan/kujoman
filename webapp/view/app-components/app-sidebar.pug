@@ -4,44 +4,54 @@ script#app-sidebar(type="text/x-template")
       ul.nav.flex-column
         li.nav-item
           router-link.nav-link(to='/dashboard')
-            i.fas.fa-home Dashboard
+            i.fas.fa-home.mr-2
+            | Dashboard
 
         li.nav-item
           router-link.nav-link(to='/job/create')
-            i.fas.fa-plus Create Job Template
+            i.fas.fa-plus.mr-2
+            | Create Job Template
 
         li.nav-item(v-for="job in jobs")
           .nav-link
             .row
               .col-md-10
-                i.fas.fa-angle-double-right
-                  | {{ job.name }}
+                i.fas.fa-angle-double-right.mr-2
+                | {{ job.name }}
+
               .col-md-2
                 i.fas.fa-angle-down
+
             ul.nav.flex-column
               li.nav-item
                 router-link.nav-link(:to="'/job/' + job.id + '/overview'")
-                  i.fas.fa-heartbeat Overview
+                  i.fas.fa-heartbeat.mr-2
+                  | Overview
 
               li.nav-item
                 router-link.nav-link(:to="'/job/' + job.id + '/run'")
-                  i.fas.fa-tasks Job Runner
+                  i.fas.fa-tasks.mr-2
+                  | Job Runner
 
               li.nav-item
                 router-link.nav-link(:to="'/job/' + job.id + '/schedule'")
-                  i.fas.fa-stopwatch Job Scheduler
+                  i.fas.fa-stopwatch.mr-2
+                  | Job Scheduler
 
               li.nav-item
                 router-link.nav-link(:to="'/job/' + job.id + '/history'")
-                  i.fas.fa-history Job History
+                  i.fas.fa-history.mr-2
+                  | Job History
 
               li.nav-item
                 router-link.nav-link(:to="'/job/' + job.id + '/configure'")
-                  i.fas.fa-wrench Configure
+                  i.fas.fa-wrench.mr-2
+                  | Configure
 
         li.nav-item
           router-link.nav-link(to='/settings')
-            i.fas.fa-cog Settings
+            i.fas.fa-cog.mr-2
+            | Settings
 
 script.
   Vue.component ('app-sidebar', {

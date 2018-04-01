@@ -1,0 +1,392 @@
+script(src="/static/js/shared/jobtemplate.js")
+
+script#job-upsert(type="text/x-template")
+  div
+    form(@submit.prevent, :class="{ 'was-validated' : is_form_submitted } ")
+      .form-group
+        label Job Name:
+        input#job-display-name.form-control(
+          type='text',
+          placeholder='Enter job name...',
+          v-model="local_job_name",
+          pattern='.{6,}'
+          required
+        )
+        .invalid-feedback
+          | Please type a job name larger than 6 characters
+
+      .form-group
+        label Kubernets Job Template (use YAML):
+        .alert.alert-warning(v-if="is_template_focused")
+          | click outside the textarea to minimize again
+
+        textarea#job-template.form-control(
+          type='text',
+          placeholder='write your kubernetes YAML job template here...',
+          v-model="local_job_template",
+          :class="{ 'large-template': is_template_focused }"
+          @focus="is_template_focused = true",
+          @blur="is_template_focused = false; updateVariablesFromJobTemplate()"
+        )
+        div.row
+          .col-8
+            | Use uppercase {VARS} with no spaces to define template variables
+
+          .col-4.align-right
+            a(href="https://kubernetes.io/docs/concepts/workloads/controllers/jobs-run-to-completion/", target="_blank")
+              | Kubernetes Job Syntax
+
+      .form-group
+        label Template Variables:
+        .alert.alert-info
+          .form-row
+            .col-2
+              label Name:
+
+            .col-2
+              label Type:
+
+            .col-2
+              label Default Value:
+
+          .form-row(v-for="tvar in local_job_variables", v-if="tvar.active !== false")
+            .col-2
+              label {{ tvar.name }}
+
+            .col-2
+              select.form-control(v-model="tvar.type")
+                option(value="date") date (yyyy-mm-dd)
+                option(value="integer") integer
+                option(value="string") string
+
+            .col-2
+              input.form-control(v-model="tvar.default")
+
+            .col-2
+              .btn-group
+                .btn.btn-sm.btn-outline-primary(@click="variableMoveDown(tvar.name)")
+                  i.fas.fa-chevron-down(title="move down")
+
+    .row(v-if="error_message")
+      .col
+        .alert.alert-danger
+          h4 Woops! Something went wrong...
+          | {{ error_message }}
+
+    .row(v-if="action_in_progress")
+      .col
+        .btn.btn-large.btn-outline-warning
+          .fas.fa-spinner.fa-spin.mr-2
+          | Working...
+
+    .row(v-else)
+      .col(v-if="!is_update")
+        .btn.btn-large.btn-success.mr-4(@click="submitCreateJob")
+          i.fas.fa-plus-circle.mr-2
+          | Create
+
+      .col(v-if="is_update")
+        .btn.btn-large.btn-success.mr-4(@click="submitUpdateJob")
+          i.fas.fa-save.mr-2
+          | Save
+
+        .btn.btn-large.btn-danger(@click="submitDeleteJob")
+          i.fas.fa-trash.mr-2
+          | Delete
+
+script.
+  const JobUpsertComponent = Vue.component ('job-upsert', {
+    template : '#job-upsert',
+    props : ['is_update', 'job_id', 'job_name', 'job_template', 'job_variables'],
+    data : function () {
+      return {
+        action_in_progress : false,
+        is_form_submitted : false,
+        is_template_focused : false,
+        local_job_name : this.job_name,
+        local_job_template : this.job_template,
+        local_job_variables : this.job_variables,
+
+        error_message : ''
+      };
+    },
+    created : function () {
+      this.updateVariablesFromJobTemplate();
+    },
+    watch : {
+      job_name (val) {
+        this.local_job_name = val;
+      },
+      job_template (val) {
+        this.local_job_template = val;
+      },
+      job_variables (val) {
+        this.local_job_variables = val;
+        /* WORKS?
+        while (this.local_job_variables.length)
+          Vue.delete (this.local_job_variables, this.local_job_variables.length-1);
+
+        for (let i = 0; i < val.length; i++)
+          Vue.set (this.local_job_variables, i, val[i]);
+        */
+      },
+      local_job_name (val) {
+        this.$emit ('update-job-name', val);
+      },
+      local_job_template (val) {
+        this.$emit ('update-job-template', val);
+      },
+      local_job_variables : {
+        handler (val) {
+          this.$emit ('update-job-variables', val);
+        },
+        deep : true
+      }
+    },
+    methods : {
+      // -----------------------------------------------------------------------
+      // isValidForm
+      //
+      // Returns true if the form on this component is valid
+      // -----------------------------------------------------------------------
+      isValidForm : function () {
+        return (this.local_job_name.length >= 6);
+      },
+
+      // -----------------------------------------------------------------------
+      // getCleanVariables
+      //
+      // returns active variables containing valid fields
+      // -----------------------------------------------------------------------
+      getCleanVariables : function () {
+        let clean_vars = [];
+        for (let i = 0; i < this.local_job_variables.length; i++) {
+          const myvar = this.local_job_variables[i];
+          if (myvar.active === false)
+            continue;
+
+          clean_vars.push ({
+            name    : myvar.name,
+            type    : myvar.type,
+            default : myvar.default
+          });
+        }
+
+        return clean_vars;
+      },
+
+      // -----------------------------------------------------------------------
+      // submitCreateJob
+      // -----------------------------------------------------------------------
+      submitCreateJob : function () {
+        this.is_form_submitted = true;
+
+        if(!this.isValidForm())
+          return;
+
+        const self = this;
+        self.action_in_progress = true;
+
+        fetch('/api/jobs/create', {
+            method: 'post',
+            headers: {
+              'Accept'      : 'application/json, text/plain, */*',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              name      : self.local_job_name,
+              template  : self.local_job_template,
+              variables : self.getCleanVariables()
+            })
+          })
+          .then(res => res.json())
+          .then(res => {
+            self.action_in_progress = false;
+            if (res.ok) {
+              this.$emit ('reset-defaults');
+              this.$emit ('refresh-jobs', '/job/' + res.id + '/configure');
+            }
+            else {
+              self.error_message = res.message;
+            }
+          });
+      },
+
+      // -----------------------------------------------------------------------
+      // submitUpdateJob
+      // -----------------------------------------------------------------------
+      submitUpdateJob : function () {
+        const self = this;
+
+        self.action_in_progress = true;
+
+        fetch('/api/jobs/update', {
+            method: 'post',
+            headers: {
+              'Accept'      : 'application/json, text/plain, */*',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              id        : self.job_id,
+              name      : self.local_job_name,
+              template  : self.local_job_template,
+              variables : self.getCleanVariables()
+            })
+          })
+          .then(res => res.json())
+          .then(res => {
+            self.action_in_progress = false;
+
+            if (res.ok)
+              self.$emit ('refresh-jobs', '/job/' + self.job_id + '/configure');
+            else
+              self.error_message = res.message;
+          });
+      },
+
+      // -----------------------------------------------------------------------
+      // submitDeleteJob
+      // -----------------------------------------------------------------------
+      submitDeleteJob : function () {
+        const self = this;
+
+        const proceed = window.confirm (
+          'Delete job template \'' + this.local_job_name + '\'?\n\n'
+          + ' id = ' + this.job_id + '\n\n'
+          + 'This action cannot be undone'
+        );
+        if (!proceed)
+          return;
+
+        self.action_in_progress = true;
+
+        fetch('/api/jobs/delete/' + this.job_id)
+          .then(res => res.json())
+          .then(res => {
+            self.action_in_progress = false;
+
+            if (res.ok)
+              self.$emit ('refresh-jobs', '/dashboard');
+            else
+              self.error_message = res.message;
+          });
+      },
+
+      // -----------------------------------------------------------------------
+      // updateVariablesFromJobTemplate
+      //
+      // Finds all variables inside the local_job_template text, which is updated by
+      // the user, and will activate/deactivate and add variables in the
+      // local_job_variables list.
+      // -----------------------------------------------------------------------
+      updateVariablesFromJobTemplate : function () {
+        const vars = templateFindAllVariables (this.local_job_template);
+        let namesLookup = {};
+
+        for (let i = 0; i < vars.length; i++) {
+          const name = vars[i];
+          namesLookup[name] = true;
+
+          const index = this.variableFindIndex (name);
+
+          // insert if not exists
+          if (index === false) {
+            this.variableSetAttributes (name, {
+              name : name,
+              type : 'string',
+              default : '',
+              active : true
+            });
+          }
+          // reactivate existing variables without changing attributes
+          else {
+            const variable = this.local_job_variables[i];
+            variable.active = true;
+          }
+        }
+
+        // deactivate unused template vars (don't remove to preserve defaults)
+        for (let i = 0; i < this.local_job_variables.length; i++) {
+          const variable = this.local_job_variables[i];
+
+          if (namesLookup.hasOwnProperty (variable.name))
+            continue;
+
+          variable.active = false;
+        }
+      },
+
+      // -----------------------------------------------------------------------
+      // variableMoveDown
+      //
+      // moves given variable one position down (skipping deactivated vars)
+      // -----------------------------------------------------------------------
+      variableMoveDown : function (name) {
+        let pivotIndex = this.variableFindIndex (name);
+        if (pivotIndex === false)
+          return;
+
+        let isActive = false;
+        do {
+          this.variableSwapNext(pivotIndex);
+          isActive = this.local_job_variables[pivotIndex].active;
+          pivotIndex++;
+        } while ((pivotIndex < this.local_job_variables.length) && !isActive);
+      },
+
+      // -----------------------------------------------------------------------
+      // variableSwapNext
+      //
+      // Swaps two elements of the list
+      // -----------------------------------------------------------------------
+      variableSwapNext : function (pivotIndex) {
+        // do nothing
+        if ((pivotIndex + 1) >= this.local_job_variables.length)
+          return;
+
+        const varPivot = this.local_job_variables[pivotIndex];
+        const varNext  = this.local_job_variables[pivotIndex + 1];
+
+        Vue.set (this.local_job_variables, pivotIndex, varNext);
+        Vue.set (this.local_job_variables, pivotIndex + 1, varPivot);
+      },
+
+      // -----------------------------------------------------------------------
+      // variableExists
+      //
+      // returns true if local_job_variables contains given variable name
+      // -----------------------------------------------------------------------
+      variableExists : function (name) {
+        return (this.variableFindIndex (name) !== false);
+      },
+
+      // -----------------------------------------------------------------------
+      // variableFindIndex
+      //
+      // returns the index in which name appears inside local_job_variables
+      // returns false if name does not appear in that list
+      // -----------------------------------------------------------------------
+      variableFindIndex: function (name) {
+        for (let i = 0; i < this.local_job_variables.length; i++) {
+          if (this.local_job_variables[i].name === name)
+            return i;
+        }
+        return false;
+      },
+
+      // -----------------------------------------------------------------------
+      // variableSetAttributes
+      //
+      // Inserts a new variable or sets the attributes for given variable name
+      // inside local_job_variables list.
+      // -----------------------------------------------------------------------
+      variableSetAttributes : function (name, attributes) {
+        // find variable index, if not found then append to the end of the list
+        let index = this.variableFindIndex (name);
+        if (index === false)
+          index = this.local_job_variables.length;
+
+        Vue.set (this.local_job_variables, index, attributes);
+      }
+    }
+  });
