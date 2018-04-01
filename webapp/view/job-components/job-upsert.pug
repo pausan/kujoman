@@ -55,6 +55,7 @@ script#job-upsert(type="text/x-template")
 
             .col-2
               select.form-control(v-model="tvar.type")
+                option(value="auto") auto
                 option(value="date") date (yyyy-mm-dd)
                 option(value="integer") integer
                 option(value="string") string
@@ -293,7 +294,7 @@ script.
           if (index === false) {
             this.variableSetAttributes (name, {
               name : name,
-              type : 'string',
+              type : 'auto',
               default : '',
               active : true
             });

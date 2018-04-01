@@ -19,6 +19,12 @@
     //       ...
     //     ]
     //   }
+    //
+    // _types_ allowed
+    //   - auto: autodetect based on value
+    //   - integer
+    //   - string
+    //   - date (yyyy-mm-dd)
     // ---------------------------------------------------------------------------
 
     // ---------------------------------------------------------------------------
@@ -66,7 +72,7 @@
       let combinations = 1;
 
       for (let i = 0; i < variables.length; i++) {
-        if (!variables[i].range)
+        if (variables[i].range === false)
           continue;
 
         combinations *= exports.jobVariablesExpandRangeCount (
@@ -96,6 +102,12 @@
     // ---------------------------------------------------------------------------
     exports.jobVariablesExpandRangeCount = function jobVariablesExpandRangeCount (type, start, end) {
       switch (type) {
+        case 'auto':
+          const startType = exports.detectType (start);
+          if (startType == exports.detectType (end))
+            return exports.jobVariablesExpandRangeCount (startType, start, end);
+          return 1;
+
         case 'int':
         case 'integer':
           return 1 + Math.abs(end - start);
@@ -202,6 +214,12 @@
         return [start];
 
       switch (type.toLowerCase()) {
+        case 'auto':
+          const startType = exports.detectType (start);
+          if (startType == exports.detectType (end))
+            return exports.jobTemplateExpandRangeValues (startType, start, end);
+          return [start, end];
+
         case 'int':
         case 'integer': return exports.jobTemplateExpandIntRangeValues (start, end);
         case 'date' :   return exports.jobTemplateExpandDateRangeValues (start, end);
@@ -318,6 +336,24 @@
       };
 
       return Object.keys(variables).sort();
+    }
+
+    // ---------------------------------------------------------------------------
+    // detectType
+    //
+    // Returns the type associated to given value
+    // ---------------------------------------------------------------------------
+    exports.detectType = function detectType (value) {
+      if ((value === null) || (value === undefined))
+        return 'string';
+
+      if (parseInt(value).toString() == value.toString())
+        return 'integer';
+
+      if (/^\s*\d{4,}\-\d+\-\d+\s*$/.test(value))
+        return 'date';
+
+      return 'string';
     }
 
     // ---------------------------------------------------------------------------

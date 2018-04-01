@@ -10,7 +10,7 @@ script#job-run(type="text/x-template")
 
     .row
       .col
-        .form-template-vars(v-for="tvar in template_variables")
+        .form-template-vars(v-for="(tvar, tvarIndex) in template_variables")
           .form-row(v-if="tvar.range")
             .col-2
               label {{ tvar.name }}
@@ -30,6 +30,11 @@ script#job-run(type="text/x-template")
             .col-2.text
               span ( {{ tvar.type }} )
 
+            .col-2.align-right
+              .btn.btn-outline-primary(@click="disableRange(tvarIndex)")
+                i.fas.fa-long-arrow-alt-left.mr-2
+                | to fixed
+
           .form-row(v-else)
             .col-2
               label {{ tvar.name }}
@@ -42,6 +47,11 @@ script#job-run(type="text/x-template")
 
             .col-2.text
               span ( {{ tvar.type }} )
+
+            .col-5.align-right
+              .btn.btn-outline-primary(@click="enableRange(tvarIndex)")
+                i.fas.fa-long-arrow-alt-right.mr-2
+                | to range
 
     .row.mt-4.mb-1
       .col-2
@@ -111,13 +121,24 @@ script.
       }
     },
     methods : {
+      enableRange : function (index) {
+        Vue.set (this.template_variables[index], 'range', true);
+        Vue.set (this.template_variables[index], 'start', this.template_variables[index].value);
+        Vue.set (this.template_variables[index], 'end',   this.template_variables[index].value);
+      },
+
+      disableRange : function (index) {
+        Vue.set (this.template_variables[index], 'range', false);
+        Vue.set (this.template_variables[index], 'value', this.template_variables[index].start);
+      },
+
       fetchJobInfo : function () {
         const self = this;
         fetch('/api/jobs/get/' + this.$route.params.job_name).then (function (response) {
           // (response.status === 200)
           response.json().then (function (data) {
             // prepare values with the defaults & set HTML5 type
-            for (let [index, tvar] of data.template_variables.entries()) {
+            for (let [index, tvar] of data.variables.entries()) {
               tvar.htmltype = getHtml5TypeForJobDataType(tvar.type);
 
               if (tvar.range) {
@@ -149,6 +170,9 @@ script.
           this.expanded_job_selected = "Woops! More than 10k jobs created, we won't show that in the browser";
           return;
         }
+
+        if (this.expanded_job_index >= this.expanded_job_count)
+          this.expanded_job_index = this.expanded_job_count - 1;
 
         this.expanded_job_selected = this.expanded_jobs[this.expanded_job_index];
       }
