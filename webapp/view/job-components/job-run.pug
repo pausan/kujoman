@@ -5,15 +5,17 @@ script#job-run(type="text/x-template")
     app-content-title(:title="'Create ' + job.name + ' (' + job.id + ')'")
     .row
       .col
-        p Define the desired values or ranges for all the variables available for this job template in order to spawn as many jobs as desired.
+        p
+        | Set the desired values/ranges for all the variables used on this job template.
+        | You'll spawn as many jobs as if you were looping through all ranges.
         p All jobs will be enqueued once created (the order is not guaranteed).
 
-    .row
+    .row.mt-4
       .col
         .form-template-vars(v-for="(tvar, tvarIndex) in template_variables")
           .form-row(v-if="tvar.range")
             .col-2
-              label {{ tvar.name }}
+              label.ml-2 {{ tvar.name }}
 
             .col-1.align-right
               label from:
@@ -37,7 +39,7 @@ script#job-run(type="text/x-template")
 
           .form-row(v-else)
             .col-2
-              label {{ tvar.name }}
+              label.ml-2 {{ tvar.name }}
 
             .col-1.align-right
               label value:

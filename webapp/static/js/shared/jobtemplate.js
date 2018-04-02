@@ -1,5 +1,5 @@
 (function (exports) {
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // _variables_ have the form
     //
     //   variables = [
@@ -25,9 +25,10 @@
     //   - integer
     //   - string
     //   - date (yyyy-mm-dd)
-    // ---------------------------------------------------------------------------
+    //   - enum (json list of strings)
+    // -------------------------------------------------------------------------
 
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // jobIdFromName
     //
     // Return the normalized version of given job name which only allows numbers and
@@ -40,12 +41,12 @@
     //
     //   >>> jobIdFromName ('  my **lovely++ job  ')
     //   'my-lovely-job'
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     exports.jobIdFromName = function jobIdFromName (name) {
       return name.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace (/^\-+|\-+$/g, '');
     },
 
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // createJobId
     //
     // Create a job template id using given name as prefix, and append some
@@ -54,7 +55,7 @@
     // Example:
     //   >>> jobIdFromName ('This is my job')
     //   'this-is-my-job-84c2f66a'
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     exports.createJobId = function createJobId (name) {
       return (
         exports.jobIdFromName (name)
@@ -63,29 +64,36 @@
       );
     },
 
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // jobVariablesExpandedCount
     //
     // Counts how many combinations exist.
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     exports.jobVariablesExpandedCount = function jobVariablesExpandedCount (variables) {
       let combinations = 1;
 
       for (let i = 0; i < variables.length; i++) {
-        if (variables[i].range === false)
+        if (variables[i].range == true) {
+          combinations *= exports.jobVariablesExpandRangeCount (
+            variables[i].type,
+            variables[i].start,
+            variables[i].end
+          );
           continue;
+        }
 
-        combinations *= exports.jobVariablesExpandRangeCount (
-          variables[i].type,
-          variables[i].start,
-          variables[i].end
-        );
+        let type = variables[i].type;
+        if (type == 'auto')
+          type = exports.detectType (variables[i].value);
+
+        if (type == 'enum')
+          combinations *= exports.jobVariablesExpandEnum (variables[i].value).length;
       }
 
       return combinations;
     }
 
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // jobVariablesExpandRangeCount
     //
     // Counts the number of items that would be created if given range would expand.
@@ -99,7 +107,7 @@
     //
     //   >>> jobVariablesExpandRangeCount ('int', '2018-01-01', '2018-01-03')
     //   3
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     exports.jobVariablesExpandRangeCount = function jobVariablesExpandRangeCount (type, start, end) {
       switch (type) {
         case 'auto':
@@ -120,7 +128,7 @@
       return 1;
     }
 
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // jobTemplateExpandVariables
     //
     // Expand all template variables and returns a list of the expanded templates.
@@ -131,20 +139,20 @@
     //
     // The list is returned because sometimes the variables might contain ranges,
     // if no ranges are given, a list of a single item will be returned.
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     exports.jobTemplateExpandVariables = function jobTemplateExpandVariables (template, variables) {
       let vars = variables.slice(); // clone
       return exports.jobTemplateExpandVariablesRecursively ([template], vars.reverse());
     }
 
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // jobTemplateExpandVariablesRecursively
     //
     // Recursively expands templates passed with the remaining variables.
     //
     // WARN: This is far from optimal due to the temporary memory required and the
     //       performance hit... but it was the quickest approach to get it working.
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     exports.jobTemplateExpandVariablesRecursively = function jobTemplateExpandVariablesRecursively (templates, variables) {
       if (typeof (templates) === 'string')
         templates = [templates];
@@ -166,16 +174,20 @@
           expandedTemplates.push (... result);
         }
         else {
-          expandedTemplates.push(
-            exports.jobTemplateReplaceAllValues (templates[i], currentVariable.name, currentVariable.value)
+          const result = exports.jobTemplateExpandFixed (
+            templates[i],
+            currentVariable.name,
+            currentVariable.type,
+            currentVariable.value
           );
+          expandedTemplates.push (... result);
         }
       }
 
       return exports.jobTemplateExpandVariablesRecursively (expandedTemplates, variables);
     }
 
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // jobTemplateExpandRange
     //
     // Expand template variables with a range of values.
@@ -185,7 +197,7 @@
     // Example:
     //   >>> jobTemplateExpandRange ('n={NUMBER}', 'NUMBER', 'integer', 1, 3)
     //   ["n=1", "n=2", "n=3"]
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     exports.jobTemplateExpandRange = function jobTemplateExpandRange (template, key, type, start, end) {
       const values = exports.jobTemplateExpandRangeValues (type, start, end);
 
@@ -199,7 +211,45 @@
       return expanded;
     }
 
-    // ---------------------------------------------------------------------------
+
+    // -------------------------------------------------------------------------
+    // jobTemplateExpandFixed
+    //
+    // Expand fixed variables, such as integers, strings and enumerations.
+    // Only enumerations can produce a resulting array of any size, otherwise
+    // an array of one item will be returned.
+    //
+    // Example:
+    //
+    //   >>> jobTemplateExpandFixed ('n={NUMBER}', 'NUMBER', 'integer', 1)
+    //   ["n=1"]
+    //
+    //   >>> jobTemplateExpandFixed ('n={NUMBER}', 'NUMBER', 'integer', 1)
+    //   ["n=1"]
+    // -------------------------------------------------------------------------
+    exports.jobTemplateExpandFixed = function jobTemplateExpandFixed (template, key, type, value) {
+      if (type == 'auto')
+        type = exports.detectType(value);
+
+      if (type == 'enum') {
+        const enumValues = exports.jobVariablesExpandEnum (value);
+
+        let results = [];
+        for (let i = 0; i < enumValues.length; i++) {
+          results.push (
+            exports.jobTemplateReplaceAllValues (template, key, enumValues[i])
+          );
+        }
+
+        return results;
+      }
+
+      return [
+        exports.jobTemplateReplaceAllValues (template, key, value.toString())
+      ];
+    }
+
+    // -------------------------------------------------------------------------
     // jobTemplateExpandRangeValues
     //
     // expand given range using the type provided
@@ -207,7 +257,7 @@
     // Example:
     //   >>> jobTemplateExpandRangeValues ('int, '3', 8)
     //   [3, 4, 5, 6, 7, 8]
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     exports.jobTemplateExpandRangeValues = function jobTemplateExpandRangeValues (type, start, end) {
       // regardless of the type
       if (start == end)
@@ -229,7 +279,42 @@
       return [start, end];
     }
 
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // jobVariablesExpandEnum
+    //
+    // expands a json array into an array of strings
+    //
+    // NOTE: counterintuitively, a malformed or empty array will return an
+    //       array containing an empty string. The reason is to make sure
+    //       combining things will always multiply by 1.
+    //
+    // Example:
+    //   >>> jobVariablesExpandEnum ('[]')
+    //   ['']
+    //
+    //   >>> jobVariablesExpandEnum ('["a", "b", 3, false, "c"]')
+    //   ["a", "b", "3", "false", "c"]
+    // -------------------------------------------------------------------------
+    exports.jobVariablesExpandEnum = function jobVariablesExpandEnum (enumValue) {
+      if (typeof (enumValue) == "string") {
+        try { enumValue = JSON.parse (enumValue); }
+        catch (e) {}
+      }
+
+      if (!Array.isArray (enumValue))
+        return ['']
+
+      let result = [];
+      for (let i = 0; i < enumValue.length; i++) {
+        if (enumValue[i] === null)
+          enumValue[i] = 'null';
+        result.push (enumValue[i].toString());
+      }
+
+      return (result.length > 0) ? result : [''];
+    }
+
+    // -------------------------------------------------------------------------
     // jobTemplateExpandIntRangeValues
     //
     // expand integer range in direct or reverse order
@@ -237,7 +322,7 @@
     // Example:
     //   >>> jobTemplateExpandIntRangeValues ('3', 8)
     //   [3, 4, 5, 6, 7, 8]
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     exports.jobTemplateExpandIntRangeValues = function jobTemplateExpandIntRangeValues (start, end) {
       start = parseInt (start);
       end = parseInt (end);
@@ -257,7 +342,7 @@
       return result;
     }
 
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // jobTemplateExpandDateRangeValues
     //
     // expand date range in direct or reverse order. Please note that time values
@@ -267,7 +352,7 @@
     // Example:
     //   >>> jobTemplateExpandDateRangeValues ('2018-01-01', '2018-01-04')
     //   ['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04']
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     exports.jobTemplateExpandDateRangeValues = function jobTemplateExpandDateRangeValues (startDate, endDate) {
       // remove hours:min:seconds, just keep yyyy-mm-dd or similar variations
       if (typeof (startDate) === 'string')
@@ -298,7 +383,7 @@
       return result;
     }
 
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // jobTemplateReplaceAllValues
     //
     // Expand template variables using given values. Variables passed as template
@@ -310,13 +395,13 @@
     //
     //   >>> jobTemplateReplaceAllValues ('I am {NAME}', 'NAME', 'Pau')
     //   "I am Pau"
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     exports.jobTemplateReplaceAllValues = function jobTemplateReplaceAllValues (template, key, value) {
       const keyEscaped = key.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
       return template.replace (new RegExp ('\\{' + keyEscaped + '\\}', 'g'), value);
     }
 
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // templateFindAllVariables
     //
     // Returns a list of all template variables sorted by name and with no duplicates
@@ -324,7 +409,7 @@
     // Example:
     //  >>> templateFindAllVariables ('my {NAME} is {VALUE}')
     //  ['NAME', 'VALUE']
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     exports.templateFindAllVariables = function templateFindAllVariables (template) {
       let variables = {};
 
@@ -338,11 +423,11 @@
       return Object.keys(variables).sort();
     }
 
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // detectType
     //
     // Returns the type associated to given value
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     exports.detectType = function detectType (value) {
       if ((value === null) || (value === undefined))
         return 'string';
@@ -353,14 +438,26 @@
       if (/^\s*\d{4,}\-\d+\-\d+\s*$/.test(value))
         return 'date';
 
+      // parse string as json list
+      try {
+        //TODO: use (new Function ('return (' + value + ')'))() in case of error?
+        //      would require us to trust the internals
+        const val = JSON.parse (value);
+        if (Array.isArray(val))
+          return 'enum';
+      }
+      catch (e) {
+        // do nothing
+      }
+
       return 'string';
     }
 
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // getHtml5TypeForJobDataType
     //
     // Returns the HTML5 type for given job data type
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     exports.getHtml5TypeForJobDataType = function getHtml5TypeForJobDataType (jobDataType) {
       let html5Type = 'text';
       switch (jobDataType) {

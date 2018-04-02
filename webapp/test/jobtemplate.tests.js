@@ -69,9 +69,11 @@ describe ('jobtemplate', function () {
           { name : 'name2', range : false, type : 'auto', value : 'value' },
           { name : 'name3', range : true, type: 'auto', start : '0', end : '6' },
           { name : 'name4', range : false, type: 'auto', value : 0, start : 0, end : 3 },
-          { name : 'name5', range : true, type: 'date', start: '2018-01-10', end: '2018-01-01' }
+          { name : 'name5', range : true, type: 'date', start: '2018-01-10', end: '2018-01-01' },
+          { name : 'name6', range : false, type: 'enum', value : '["a", 2, "c"]' },
+          { name : 'name7', range : false, type: 'auto', value : '["a", "b"]' }
         ])
-      ).to.equal (5*1*7*1*10);
+      ).to.equal (5*1*7*1*10*3*2);
     })
 
     it ('mixed', function () {
@@ -83,6 +85,13 @@ describe ('jobtemplate', function () {
           { name : 'name4', range : true, type: 'integer', start : 0, end : 3 }
         ])
       ).to.equal (3*1*7*4);
+
+      expect (
+        JobTemplate.jobVariablesExpandedCount ([
+          { name : 'name1', type: 'auto', value : '0' },
+          { name : 'name3', type: 'enum', value : '[1, 2, 3]' }
+        ])
+      ).to.equal (3);
     })
 
     it ('date', function () {
@@ -92,6 +101,21 @@ describe ('jobtemplate', function () {
         ])
       ).to.equal (10);
     })
+
+    it ('enum', function () {
+      expect (
+        JobTemplate.jobVariablesExpandedCount ([
+          { name : 'name1', range : false, type: 'enum', value : '[]' },
+        ])
+      ).to.equal (1);
+
+      expect (
+        JobTemplate.jobVariablesExpandedCount ([
+          { name : 'name1', range : false, type: 'enum', value : '["a", 2, "c"]' },
+        ])
+      ).to.equal (3);
+    })
+
   })
 
   describe ('jobVariablesExpandRangeCount', function () {
@@ -131,7 +155,6 @@ describe ('jobtemplate', function () {
       expect (
         JobTemplate.jobVariablesExpandRangeCount ('date', '2018-01-10 10:10:10', '2018-01-01 12:12:12')
       ).to.equal (10);
-
     });
   });
 
@@ -179,7 +202,7 @@ describe ('jobtemplate', function () {
       const variables = [
         {name : 'I',     type : 'integer', range : true,  start : 1, end : 2 },
         {name : 'DATE',  type : 'date',    range : true,  start : '2018-01-01', end : '2018-01-02' },
-        {name : 'J',     type : 'integer', range : true,  start : 10, end : 12 },
+        {name : 'J',     type : 'enum',    range : false,  value : '[10, "11", 12]' },
         {name : 'FIXED', type : 'string',  range : false, value: 'i+j' },
       ];
 
@@ -239,6 +262,66 @@ describe ('jobtemplate', function () {
         '2018-01-02: i=2,j=12,k=i+j'
       ]);
     })
+
+    it ('mixed.2', function () {
+      const template = '{DATE}: i={I},j={J},k={FIXED}';
+      const variables = [
+        {name : 'DATE',  type : 'date',    range : true,  start : '2018-01-01', end : '2018-01-02' },
+        {name : 'I',     type : 'enum',    range : false,  value : '[1,2]' },
+        {name : 'J',     type : 'auto',    range : false,  value : '[10, 11, 12]' },
+        {name : 'FIXED', type : 'string',  range : false,  value: 'i+j' },
+      ];
+
+      expect (JobTemplate.jobVariablesExpandedCount (variables), 12);
+
+      expect (
+        JobTemplate.jobTemplateExpandVariablesRecursively (template, variables.slice(0)),
+      ).to.deep.equal ([
+        '2018-01-01: i=1,j=10,k=i+j',
+        '2018-01-02: i=1,j=10,k=i+j',
+        '2018-01-01: i=2,j=10,k=i+j',
+        '2018-01-02: i=2,j=10,k=i+j',
+        '2018-01-01: i=1,j=11,k=i+j',
+        '2018-01-02: i=1,j=11,k=i+j',
+        '2018-01-01: i=2,j=11,k=i+j',
+        '2018-01-02: i=2,j=11,k=i+j',
+        '2018-01-01: i=1,j=12,k=i+j',
+        '2018-01-02: i=1,j=12,k=i+j',
+        '2018-01-01: i=2,j=12,k=i+j',
+        '2018-01-02: i=2,j=12,k=i+j'
+      ]);
+    })
+
+    it ('enum.two', function () {
+      const template = 'N {I}';
+      const variables = [
+        {name : 'I', type : 'enum',  value : '[1,2]' },
+      ];
+
+      expect (JobTemplate.jobVariablesExpandedCount (variables), 2);
+
+      expect (
+        JobTemplate.jobTemplateExpandVariablesRecursively (template, variables.slice(0)),
+      ).to.deep.equal ([
+        'N 1',
+        'N 2'
+      ]);
+    })
+
+    it ('enum.empty', function () {
+      const template = 'N -{I}-';
+      const variables = [
+        {name : 'I', type : 'enum',  value : '[]' },
+      ];
+
+      expect (JobTemplate.jobVariablesExpandedCount (variables), 1);
+
+      expect (
+        JobTemplate.jobTemplateExpandVariablesRecursively (template, variables.slice(0)),
+      ).to.deep.equal ([
+        'N --'
+      ]);
+    })
   });
 
   describe ('jobTemplateExpandRange', function () {
@@ -246,6 +329,35 @@ describe ('jobtemplate', function () {
       expect (
         JobTemplate.jobTemplateExpandRange ('n={NUMBER}', 'NUMBER', 'integer', 1, 3),
       ).to.deep.equal (["n=1", "n=2", "n=3"]);
+    });
+  });
+
+  describe ('jobTemplateExpandFixed', function () {
+    it ('integer', function () {
+      expect (
+        JobTemplate.jobTemplateExpandFixed ('n={NUMBER}', 'NUMBER', 'integer', 1),
+      ).to.deep.equal (["n=1"]);
+    });
+
+    it ('string', function () {
+      expect (
+        JobTemplate.jobTemplateExpandFixed ('n={NUMBER}', 'NUMBER', 'string', "my-string"),
+      ).to.deep.equal (["n=my-string"]);
+    });
+
+    it ('enum', function () {
+      expect (
+        JobTemplate.jobTemplateExpandFixed ('n={NUMBER}', 'NUMBER', 'enum', '[1, "a", null]'),
+      ).to.deep.equal (["n=1", "n=a", "n=null"]);
+    });
+
+    it ('auto', function () {
+      expect (
+        JobTemplate.jobTemplateExpandFixed ('n={NUMBER}', 'NUMBER', 'auto', "my-string"),
+      ).to.deep.equal (["n=my-string"]);
+      expect (
+        JobTemplate.jobTemplateExpandFixed ('n={NUMBER}', 'NUMBER', 'auto', '[1, "a", null]'),
+      ).to.deep.equal (["n=1", "n=a", "n=null"]);
     });
   });
 
@@ -399,9 +511,22 @@ describe ('jobtemplate', function () {
       expect (JobTemplate.detectType (' 2018-01-01 ')).to.equal ('date');
       expect (JobTemplate.detectType (' 1999-12-17')).to.equal ('date');
     })
+
+    it ('enum', function () {
+      expect (JobTemplate.detectType ('[]')).to.equal ('enum');
+      expect (JobTemplate.detectType ('[1,2,3]')).to.equal ('enum');
+      expect (JobTemplate.detectType ('["a", "b"]')).to.equal ('enum');
+      expect (JobTemplate.detectType ('[false, null, 0.2]')).to.equal ('enum');
+    })
   });
 
   describe ('getHtml5TypeForJobDataType', function () {
+    it ('auto', function () {
+      expect (
+        JobTemplate.getHtml5TypeForJobDataType ('auto')
+      ).to.equal ('text');
+    })
+
     it ('integer', function () {
       expect (
         JobTemplate.getHtml5TypeForJobDataType ('int')
@@ -415,6 +540,12 @@ describe ('jobtemplate', function () {
     it ('string', function () {
       expect (
         JobTemplate.getHtml5TypeForJobDataType ('string')
+      ).to.equal ('text');
+    })
+
+    it ('enum', function () {
+      expect (
+        JobTemplate.getHtml5TypeForJobDataType ('enum')
       ).to.equal ('text');
     })
 

@@ -59,6 +59,7 @@ script#job-upsert(type="text/x-template")
                 option(value="date") date (yyyy-mm-dd)
                 option(value="integer") integer
                 option(value="string") string
+                option(value="enum") enum (json list)
 
             .col-2
               input.form-control(v-model="tvar.default")
@@ -91,9 +92,9 @@ script#job-upsert(type="text/x-template")
           i.fas.fa-save.mr-2
           | Save
 
-        .btn.btn-large.btn-danger(@click="submitDeleteJob")
-          i.fas.fa-trash.mr-2
-          | Delete
+        .btn.btn-large.btn-outline-danger(@click="submitArchiveJob")
+          i.fas.fa-sign-in-alt.fa-rotate-90.mr-2
+          | Archive
 
 script.
   const JobUpsertComponent = Vue.component ('job-upsert', {
@@ -246,22 +247,21 @@ script.
       },
 
       // -----------------------------------------------------------------------
-      // submitDeleteJob
+      // submitArchiveJob
       // -----------------------------------------------------------------------
-      submitDeleteJob : function () {
+      submitArchiveJob : function () {
         const self = this;
 
         const proceed = window.confirm (
-          'Delete job template \'' + this.local_job_name + '\'?\n\n'
-          + ' id = ' + this.job_id + '\n\n'
-          + 'This action cannot be undone'
+          'Archive job template \'' + this.local_job_name + '\'?\n\n'
+          + ' id = ' + this.job_id
         );
         if (!proceed)
           return;
 
         self.action_in_progress = true;
 
-        fetch('/api/jobs/delete/' + this.job_id)
+        fetch('/api/jobs/archive/' + this.job_id)
           .then(res => res.json())
           .then(res => {
             self.action_in_progress = false;
