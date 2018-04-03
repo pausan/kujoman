@@ -53,8 +53,23 @@ module.exports = function jobs (context) {
       resp.json ({ ok : ok });
     },
 
+    archiveJobById : async function (req, resp) {
+      const ok = await context.model.jobs.archiveJobById (req.params.id);
+      resp.json ({ ok : ok });
+    },
+
+    unarchiveJobById : async function (req, resp) {
+      const ok = await context.model.jobs.unarchiveJobById (req.params.id);
+      resp.json ({ ok : ok });
+    },
+
     getAllJobs : async function (req, resp) {
-      const jobs = await context.model.jobs.getAllJobs();
+      const jobs = await context.model.jobs.getActiveJobs();
+      resp.json (jobs);
+    },
+
+    getArchivedJobs : async function (req, resp) {
+      const jobs = await context.model.jobs.getArchivedJobs();
       resp.json (jobs);
     },
 

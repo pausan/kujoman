@@ -29,7 +29,8 @@ module.exports = function jobs (context) {
         updated_at : new Date(),
         updated_by : author,
         template   : template,
-        variables  : variables
+        variables  : variables,
+        archived   : false
       };
 
       const jobKey = datastore.key([KUJOMAN_JOB_TEMPLATE, jobId]);
@@ -53,7 +54,7 @@ module.exports = function jobs (context) {
     updateJob : async function (id, name, author, template, variables) {
       // fetch existing data to fill the gaps, the whole object
       // needs to be provided
-      const existingData = this.getJobById (id);
+      const existingData = await this.getJobById (id);
       const jobData = {
         name       : name,
         created_at : existingData.created_at,
@@ -61,7 +62,8 @@ module.exports = function jobs (context) {
         updated_at : new Date(),
         updated_by : author,
         template   : template,
-        variables  : variables
+        variables  : variables,
+        archived   : existingData.archived || false
       };
 
       const jobKey = datastore.key([KUJOMAN_JOB_TEMPLATE, id]);
@@ -77,12 +79,57 @@ module.exports = function jobs (context) {
     },
 
     // -------------------------------------------------------------------------
-    // getAllJobs
+    // archiveJobById
+    //
+    // Flag a job as archived.
     // -------------------------------------------------------------------------
-    getAllJobs : async function () {
+    archiveJobById : async function (id) {
+      const jobKey = datastore.key([KUJOMAN_JOB_TEMPLATE, id]);
+
+      const jobData = await this.getJobById (id);
+      jobData.archived = true;
+
+      try {
+        await datastore.update ({key : jobKey, data : jobData});
+        return true;
+      }
+      catch (e) {
+        console.log ("EXCEPTION!" + e); // FIXME!
+      }
+
+      return false;
+    },
+
+    // -------------------------------------------------------------------------
+    // unarchiveJobById
+    //
+    // Unflag a job as archived.
+    // -------------------------------------------------------------------------
+    unarchiveJobById : async function (id) {
+      const jobKey = datastore.key([KUJOMAN_JOB_TEMPLATE, id]);
+
+      const jobData = await this.getJobById (id);
+      jobData.archived = false;
+
+      try {
+        await datastore.update ({key : jobKey, data : jobData});
+        return true;
+      }
+      catch (e) {
+        console.log ("EXCEPTION!" + e); // FIXME!
+      }
+
+      return false;
+    },
+
+    // -------------------------------------------------------------------------
+    // getActiveJobs
+    // -------------------------------------------------------------------------
+    getActiveJobs : async function () {
       const query = datastore.createQuery(
         KUJOMAN_JOB_TEMPLATE
-      ).order('name', { ascending : true });
+      ).filter ('archived', '=', false)
+       .order('name', { ascending : true });
 
       let jobQueryResult = (await datastore.runQuery(query))[0];
 
@@ -91,6 +138,30 @@ module.exports = function jobs (context) {
         job.id = job[datastore.KEY].name;
         job.stats = {
           running : 0,
+          waiting : 0,
+          failed : 0,
+          successful : 0
+        };
+        results.push (job);
+      });
+      return results;
+    },
+
+    // -------------------------------------------------------------------------
+    // getArchivedJobs
+    // -------------------------------------------------------------------------
+    getArchivedJobs : async function () {
+      const query = datastore.createQuery(
+        KUJOMAN_JOB_TEMPLATE
+      ).filter ('archived', '=', true)
+       .order('name', { ascending : true });
+
+      let jobQueryResult = (await datastore.runQuery(query))[0];
+
+      let results = [];
+      jobQueryResult.forEach(job => {
+        job.id = job[datastore.KEY].name;
+        job.stats = {
           waiting : 0,
           failed : 0,
           successful : 0

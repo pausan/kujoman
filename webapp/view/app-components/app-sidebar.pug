@@ -49,6 +49,11 @@ script#app-sidebar(type="text/x-template")
                   | Configure
 
         li.nav-item
+          router-link.nav-link(to='/archived')
+            i.fas.fa-sign-in-alt.fa-rotate-90.mr-2
+            | Archived Jobs
+
+        li.nav-item
           router-link.nav-link(to='/settings')
             i.fas.fa-cog.mr-2
             | Settings

@@ -1,0 +1,59 @@
+script#app-archived(type="text/x-template")
+  div
+    app-content-title(title="Archived Jobs")
+
+    .table-responsive
+      table.table.table-striped.table-sm
+        thead
+          tr
+            th Job Name
+            // TODO: add some stats...
+            //       add ability to explore/filter/...
+            th Action
+
+        tbody
+          tr(v-for="job in jobs")
+            td {{ job.name }}
+            td
+              .btn.btn-outline-success(@click="unarchiveJob(job.id)")
+                i.fas.fa-sign-out-alt.fa-rotate-270.mr-2
+                | Unarchive
+
+script.
+  const AppArchived = Vue.component ('app-archived', {
+    template : '#app-archived',
+    data: function () {
+      return {
+        jobs : []
+      }
+    },
+    created: function() {
+      this.fetchAllJobs();
+    },
+    methods : {
+      unarchiveJob (jobId) {
+        let self = this;
+
+        fetch('/api/jobs/unarchive/' + jobId)
+          .then(res => res.json())
+          .then(res => {
+            if (res.ok) {
+              self.$emit ('refresh-jobs', '/archived');
+              self.fetchAllJobs();
+            }
+            else
+              self.error_message = res.message;
+          });
+      },
+
+      fetchAllJobs () {
+        const self = this;
+        fetch('/api/jobs/all-archived').then (function (response) {
+          // (response.status === 200)
+          response.json().then (function (data) {
+            Vue.set (self, 'jobs', data);
+          })
+        });
+      }
+    }
+  });

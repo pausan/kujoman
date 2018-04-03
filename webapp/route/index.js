@@ -9,8 +9,11 @@ module.exports = function routeExports (context) {
   app.post ('/api/jobs/create', context.controller.api.jobs.createJob);
   app.post ('/api/jobs/update', context.controller.api.jobs.updateJob);
   app.all ('/api/jobs/delete/:id', context.controller.api.jobs.deleteJobById);
+  app.all ('/api/jobs/archive/:id', context.controller.api.jobs.archiveJobById);
+  app.all ('/api/jobs/unarchive/:id', context.controller.api.jobs.unarchiveJobById);
 
   app.get ('/api/jobs/all', context.controller.api.jobs.getAllJobs);
+  app.get ('/api/jobs/all-archived', context.controller.api.jobs.getArchivedJobs);
   app.get ('/api/jobs/get/:id', context.controller.api.jobs.getJobById);
 
   app.get ('/api/settings', context.controller.api.settings.getSettings);

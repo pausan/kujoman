@@ -267,7 +267,7 @@ script.
             self.action_in_progress = false;
 
             if (res.ok)
-              self.$emit ('refresh-jobs', '/dashboard');
+              self.$emit ('refresh-jobs', '/archived');
             else
               self.error_message = res.message;
           });
