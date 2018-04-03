@@ -15,9 +15,13 @@ script#app-archived(type="text/x-template")
           tr(v-for="job in jobs")
             td {{ job.name }}
             td
-              .btn.btn-outline-success(@click="unarchiveJob(job.id)")
+              .btn.btn-outline-success.mr-2(@click="unarchiveJob(job.id)")
                 i.fas.fa-sign-out-alt.fa-rotate-270.mr-2
                 | Unarchive
+
+              .btn.btn-danger(@click="deleteJobPermanently(job)")
+                i.fas.fa-trash.mr-2
+                | Delete
 
 script.
   const AppArchived = Vue.component ('app-archived', {
@@ -31,6 +35,9 @@ script.
       this.fetchAllJobs();
     },
     methods : {
+      // -----------------------------------------------------------------------
+      // unarchiveJob
+      // -----------------------------------------------------------------------
       unarchiveJob (jobId) {
         let self = this;
 
@@ -46,6 +53,35 @@ script.
           });
       },
 
+      // -----------------------------------------------------------------------
+      // deleteJobPermanently
+      // -----------------------------------------------------------------------
+      deleteJobPermanently : function (job) {
+        const self = this;
+
+        const proceed = window.confirm (
+          'Delete job template \'' + job.name + '\'?\n\n'
+          + ' id = ' + job.id + '\n\n'
+          + 'WARNING! This operation cannot be undone!'
+        );
+        if (!proceed)
+          return;
+
+        fetch('/api/jobs/delete/' + job.id)
+          .then(res => res.json())
+          .then(res => {
+            if (res.ok) {
+              self.$emit ('refresh-jobs', '/archived');
+              self.fetchAllJobs();
+            }
+            else
+              self.error_message = res.message;
+          });
+      },
+
+      // -----------------------------------------------------------------------
+      // fetchAllJobs
+      // -----------------------------------------------------------------------
       fetchAllJobs () {
         const self = this;
         fetch('/api/jobs/all-archived').then (function (response) {

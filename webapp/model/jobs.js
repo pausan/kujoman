@@ -189,6 +189,8 @@ module.exports = function jobs (context) {
       const jobKey = datastore.key ([KUJOMAN_JOB_TEMPLATE, jobId]);
       let deleteResult = await datastore.delete (jobKey);
 
+      // TODO: ensure job has been archived first?
+
       // if deleteResult.indexUpdates == 0 ==> nothing deleted (not existed!)
 
       return true;
