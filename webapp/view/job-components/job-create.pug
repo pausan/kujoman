@@ -7,6 +7,9 @@ script#job-create(type="text/x-template")
       :job_name="job_name",
       @update-job-name="updateJobName"
 
+      :job_description="job_description",
+      @update-job-description="updateJobDescription"
+
       :job_template="job_template",
       @update-job-template="updateJobTemplate"
 
@@ -37,6 +40,7 @@ script.
   // simple way to preserve app status
   g_store.job_create = {
     job_name : '',
+    job_description : '',
     job_template : g_defaultJobTemplate,
     job_variables : []
   };
@@ -48,17 +52,14 @@ script.
     },
     methods : {
       // called from children
-      updateJobName (val) {
-        this.job_name = val;
-      },
-      updateJobTemplate (val) {
-        this.job_template = val;
-      },
-      updateJobVariables (val) {
-        this.job_variables = val;
-      },
+      updateJobName (val) { this.job_name = val; },
+      updateJobDescription (val) { this.job_description = val; },
+      updateJobTemplate (val) { this.job_template = val; },
+      updateJobVariables (val) { this.job_variables = val; },
+
       resetJobDefaults () {
         g_store.job_create.job_name = '';
+        g_store.job_create.job_description = '';
         g_store.job_create.job_template = g_defaultJobTemplate;
         g_store.job_create.job_variables = [];
       },

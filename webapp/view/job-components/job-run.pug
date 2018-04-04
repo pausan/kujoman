@@ -1,5 +1,3 @@
-script(src="/static/js/shared/jobtemplate.js")
-
 script#job-run(type="text/x-template")
   div
     app-content-title(:title="'Create ' + job.name + ' (' + job.id + ')'")
@@ -12,7 +10,7 @@ script#job-run(type="text/x-template")
 
     .row.mt-4
       .col
-        .form-template-vars(v-for="(tvar, tvarIndex) in template_variables")
+        .form-template-vars(v-for="(tvar, tvarIndex) in variables")
           .form-row(v-if="tvar.range")
             .col-2
               label.ml-2 {{ tvar.name }}
@@ -69,14 +67,20 @@ script#job-run(type="text/x-template")
           .btn.btn-outline-info.btn-sm(@click="updateJobSelection (+1)")
             i.fas.fa-angle-right
 
-    .row
+    .row.mb-4
       .col
         pre.alert.alert-info
           | {{ expanded_job_selected }}
 
-    .row.mt-4
+    .row(v-if="action_in_progress")
       .col
-        .btn.btn-success
+        .btn.btn-large.btn-outline-warning
+          .fas.fa-spinner.fa-spin.mr-2
+          | Working...
+
+    .row(v-else)
+      .col
+        .btn.btn-success(@click="createJobs")
           span Create &amp; Run {{ expanded_job_count }} Jobs
             i.fas.fa-play-circle.ml-2
 
@@ -86,7 +90,9 @@ script.
     data : function () {
       return {
         job : { template : '' },
-        template_variables : [],
+        variables : [],
+
+        action_in_progress : false,
 
         expanded_jobs         : [],
         expanded_job_count    : 1,
@@ -98,14 +104,14 @@ script.
       this.fetchJobInfo()
     },
     watch: {
-      template_variables : {
+      variables : {
         handler(old, newval) {
-          this.expanded_job_count = jobVariablesExpandedCount (this.template_variables);
+          this.expanded_job_count = jobVariablesExpandedCount (this.variables);
 
           if (this.expanded_job_count < 10000) {
             this.expanded_jobs = jobTemplateExpandVariables (
               this.job.template,
-              this.template_variables
+              this.variables
             );
           }
           else {
@@ -118,25 +124,56 @@ script.
       },
 
       // reload data if users selects another job
-      "$route.params.job_name" : function() {
+      "$route.params.job_id" : function() {
         this.fetchJobInfo()
       }
     },
     methods : {
       enableRange : function (index) {
-        Vue.set (this.template_variables[index], 'range', true);
-        Vue.set (this.template_variables[index], 'start', this.template_variables[index].value);
-        Vue.set (this.template_variables[index], 'end',   this.template_variables[index].value);
+        Vue.set (this.variables[index], 'range', true);
+        Vue.set (this.variables[index], 'start', this.variables[index].value);
+        Vue.set (this.variables[index], 'end',   this.variables[index].value);
       },
 
       disableRange : function (index) {
-        Vue.set (this.template_variables[index], 'range', false);
-        Vue.set (this.template_variables[index], 'value', this.template_variables[index].start);
+        Vue.set (this.variables[index], 'range', false);
+        Vue.set (this.variables[index], 'value', this.variables[index].start);
+      },
+
+      // -----------------------------------------------------------------------
+      // createJobs
+      // -----------------------------------------------------------------------
+      createJobs : function () {
+        const self = this;
+        self.action_in_progress = true;
+
+        fetch('/api/jobs/run/' + self.job.id, {
+            method: 'post',
+            headers: {
+              'Accept'      : 'application/json, text/plain, */*',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              template  : self.job.template,
+              variables : self.variables
+            })
+          })
+          .then(res => res.json())
+          .then(res => {
+            self.action_in_progress = false;
+            if (res.ok) {
+              // FIXME!
+              // this.$emit ('reset-defaults');
+            }
+            else {
+              self.error_message = res.message;
+            }
+          });
       },
 
       fetchJobInfo : function () {
         const self = this;
-        fetch('/api/jobs/get/' + this.$route.params.job_name).then (function (response) {
+        fetch('/api/jobs/get/' + this.$route.params.job_id).then (function (response) {
           // (response.status === 200)
           response.json().then (function (data) {
             // prepare values with the defaults & set HTML5 type
@@ -150,7 +187,7 @@ script.
                 tvar.value = tvar.default;
               }
 
-              Vue.set (self.template_variables, index, tvar);
+              Vue.set (self.variables, index, tvar);
             }
 
             self.job = data;

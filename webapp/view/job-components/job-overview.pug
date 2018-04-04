@@ -1,7 +1,7 @@
 
 script#job-overview(type="text/x-template")
   div
-    | job overview! {{ $route.params.job_name }}
+    | job overview! {{ $route.params.job_id }}
     pre.
       Kujoman > MyFirstJob > Overview
 
@@ -9,17 +9,17 @@ script#job-overview(type="text/x-template")
 
               o Today | * This Week | o This Month | o Last 7 days | o Last 30 days | o Last 90 days | o Always  <-- select?
 
-      +---------+---------------------+---------------------+----------+---------+---------------------+
-      | Job Id  | Time Started        | Time Finished       | Duration | Status  | Actions             |
-      +---------+---------------------+---------------------+----------+---------+---------------------+
-      | 928aak6 | 2018-09-01 10:44:10 |                     |    337 s | Running | _Details_ - _Clone_ |
-      | 928aak6 | 2018-09-01 10:44:32 | 2018-09-01 10:46:37 |    125 s | Success | _Details_ - _Clone_ |
-      | 928aak5 | 2018-09-01 10:44:33 | 2018-09-01 10:46:35 |     73 s | Success | _Details_ - _Clone_ |
-      | 928aak4 | 2018-09-01 10:43:32 | 2018-09-01 10:44:33 |     65 s | Success | _Details_ - _Clone_ |
-      | 928aak3 | 2018-09-01 10:42:32 | 2018-09-01 10:41:37 |     65 s | Success | _Details_ - _Clone_ |
-      | 928aak2 | 2018-09-01 10:41:32 | 2018-09-01 10:46:37 |     65 s | Success | _Details_ - _Clone_ |
-      | 928aak1 | 2018-09-01 09:10:32 | 2018-09-01 10:46:37 |     65 s | Success | _Details_ - _Clone_ |
-      +---------+---------------------+---------------------+----------+---------+---------------------+
+      +---------+---------------------+---------------------+----------+---------+-------------------------------+
+      | Job Id  | Time Started        | Time Finished       | Duration | Status  | Actions                       |
+      +---------+---------------------+---------------------+----------+---------+-------------------------------+
+      | 928aak6 | 2018-09-01 10:44:10 |                     |    337 s | Running | _Details_ - _Clone_ - _Retry_ |
+      | 928aak6 | 2018-09-01 10:44:32 | 2018-09-01 10:46:37 |    125 s | Success | _Details_ - _Clone_ - _Retry_ |
+      | 928aak5 | 2018-09-01 10:44:33 | 2018-09-01 10:46:35 |     73 s | Success | _Details_ - _Clone_ - _Retry_ |
+      | 928aak4 | 2018-09-01 10:43:32 | 2018-09-01 10:44:33 |     65 s | Success | _Details_ - _Clone_ - _Retry_ |
+      | 928aak3 | 2018-09-01 10:42:32 | 2018-09-01 10:41:37 |     65 s | Success | _Details_ - _Clone_ - _Retry_ |
+      | 928aak2 | 2018-09-01 10:41:32 | 2018-09-01 10:46:37 |     65 s | Success | _Details_ - _Clone_ - _Retry_ |
+      | 928aak1 | 2018-09-01 09:10:32 | 2018-09-01 10:46:37 |     65 s | Success | _Details_ - _Clone_ - _Retry_ |
+      +---------+---------------------+---------------------+----------+---------+-------------------------------+
 
 
       --------------------------------------------------------------------------------

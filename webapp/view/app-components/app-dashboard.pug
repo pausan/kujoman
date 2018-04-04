@@ -8,16 +8,20 @@ script#app-dashboard(type="text/x-template")
         thead
           tr
             th Job Name
-            th # Running
             th # Waiting
+            th # Running
+            th # Retrying
+            th # Stopped
             th # Failed
             th # Successful
 
         tbody
           tr(v-for="job in jobs")
             td {{ job.name }}
-            td {{ job.stats.running }}
             td {{ job.stats.waiting }}
+            td {{ job.stats.running }}
+            td {{ job.stats.retrying }}
+            td {{ job.stats.stopped }}
             td {{ job.stats.failed }}
             td {{ job.stats.successful }}
 

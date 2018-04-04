@@ -44,12 +44,12 @@ html(lang='en')
           { path: '/archived', component: AppArchived },
           { path: '/settings', component: AppSettings },
           { path: '/job/create', component: JobCreateComponent },
-          { path: '/job/:job_name/overview', component: JobOverviewComponent },
-          { path: '/job/:job_name/view', component: JobViewComponent },
-          // TODO: { path: '/job/:job_name/history', component: JobHistoryComponent },
-          { path: '/job/:job_name/run', component: JobRunComponent },
-          { path: '/job/:job_name/schedule', component: JobScheduleComponent },
-          { path: '/job/:job_name/configure', component: JobConfigureComponent },
+          { path: '/job/:job_id/overview', component: JobOverviewComponent },
+          { path: '/job/:job_id/view', component: JobViewComponent },
+          // TODO: { path: '/job/:job_id/history', component: JobHistoryComponent },
+          { path: '/job/:job_id/run', component: JobRunComponent },
+          { path: '/job/:job_id/schedule', component: JobScheduleComponent },
+          { path: '/job/:job_id/configure', component: JobConfigureComponent },
         ]
       });
 

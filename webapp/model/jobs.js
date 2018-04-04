@@ -3,10 +3,10 @@
 // -----------------------------------------------------------------------------
 'use strict';
 
-const KUJOMAN_JOB_TEMPLATE = 'kujoman_job_template';
-const KUJOMAN_JOB_RESULT   = 'kujoman_job_result';
 
 module.exports = function jobs (context) {
+  const _ = require ('lodash');
+  const JobConst = require ('./jobconst.js');
   const JobTemplate = require ('../static/js/shared/jobtemplate.js');
   const Datastore = require('@google-cloud/datastore');
   const datastore = Datastore({
@@ -20,20 +20,21 @@ module.exports = function jobs (context) {
     // Creates a new job in the database and returns the newly created job id
     // or false if anything goes wrong.
     // -------------------------------------------------------------------------
-    createJob : async function (name, author, template, variables) {
+    createJob : async function (name, description, author, template, variables) {
       const jobId   = JobTemplate.createJobId (name);
       const jobData = {
-        name       : name,
-        created_at : new Date(),
-        created_by : author,
-        updated_at : new Date(),
-        updated_by : author,
-        template   : template,
-        variables  : variables,
-        archived   : false
+        name        : name,
+        description : description,
+        created_at  : new Date(),
+        created_by  : author,
+        updated_at  : new Date(),
+        updated_by  : author,
+        template    : template,
+        variables   : variables,
+        archived    : false
       };
 
-      const jobKey = datastore.key([KUJOMAN_JOB_TEMPLATE, jobId]);
+      const jobKey = datastore.key([JobConst.DB_KUJOMAN_JOB_TEMPLATE, jobId]);
 
       try {
         await datastore.insert ({key : jobKey, data : jobData});
@@ -51,22 +52,21 @@ module.exports = function jobs (context) {
     // Creates a new job in the database and returns the newly created job id
     // or false if anything goes wrong.
     // -------------------------------------------------------------------------
-    updateJob : async function (id, name, author, template, variables) {
+    updateJob : async function (id, name, description, author, template, variables) {
       // fetch existing data to fill the gaps, the whole object
       // needs to be provided
       const existingData = await this.getJobById (id);
-      const jobData = {
-        name       : name,
-        created_at : existingData.created_at,
-        created_by : existingData.created_by,
-        updated_at : new Date(),
-        updated_by : author,
-        template   : template,
-        variables  : variables,
-        archived   : existingData.archived || false
+      const overrideData = {
+        name        : name,
+        description : description,
+        updated_at  : new Date(),
+        updated_by  : author,
+        template    : template,
+        variables   : variables
       };
+      const jobData = _.extend (existingData, overrideData);
 
-      const jobKey = datastore.key([KUJOMAN_JOB_TEMPLATE, id]);
+      const jobKey = datastore.key([JobConst.DB_KUJOMAN_JOB_TEMPLATE, id]);
 
       try {
         await datastore.update ({key : jobKey, data : jobData});
@@ -84,7 +84,7 @@ module.exports = function jobs (context) {
     // Flag a job as archived.
     // -------------------------------------------------------------------------
     archiveJobById : async function (id) {
-      const jobKey = datastore.key([KUJOMAN_JOB_TEMPLATE, id]);
+      const jobKey = datastore.key([JobConst.DB_KUJOMAN_JOB_TEMPLATE, id]);
 
       const jobData = await this.getJobById (id);
       jobData.archived = true;
@@ -106,7 +106,7 @@ module.exports = function jobs (context) {
     // Unflag a job as archived.
     // -------------------------------------------------------------------------
     unarchiveJobById : async function (id) {
-      const jobKey = datastore.key([KUJOMAN_JOB_TEMPLATE, id]);
+      const jobKey = datastore.key([JobConst.DB_KUJOMAN_JOB_TEMPLATE, id]);
 
       const jobData = await this.getJobById (id);
       jobData.archived = false;
@@ -127,7 +127,7 @@ module.exports = function jobs (context) {
     // -------------------------------------------------------------------------
     getActiveJobs : async function () {
       const query = datastore.createQuery(
-        KUJOMAN_JOB_TEMPLATE
+        JobConst.DB_KUJOMAN_JOB_TEMPLATE
       ).filter ('archived', '=', false)
        .order('name', { ascending : true });
 
@@ -136,12 +136,7 @@ module.exports = function jobs (context) {
       let results = [];
       jobQueryResult.forEach(job => {
         job.id = job[datastore.KEY].name;
-        job.stats = {
-          running : 0,
-          waiting : 0,
-          failed : 0,
-          successful : 0
-        };
+        job.stats = context.model.jobstats.getStatsByJobId (job.id);
         results.push (job);
       });
       return results;
@@ -152,7 +147,7 @@ module.exports = function jobs (context) {
     // -------------------------------------------------------------------------
     getArchivedJobs : async function () {
       const query = datastore.createQuery(
-        KUJOMAN_JOB_TEMPLATE
+        JobConst.DB_KUJOMAN_JOB_TEMPLATE
       ).filter ('archived', '=', true)
        .order('name', { ascending : true });
 
@@ -161,11 +156,7 @@ module.exports = function jobs (context) {
       let results = [];
       jobQueryResult.forEach(job => {
         job.id = job[datastore.KEY].name;
-        job.stats = {
-          waiting : 0,
-          failed : 0,
-          successful : 0
-        };
+        job.stats = context.model.jobstats.getStatsByJobId (job.id);
         results.push (job);
       });
       return results;
@@ -175,18 +166,17 @@ module.exports = function jobs (context) {
     // getJobById
     // -------------------------------------------------------------------------
     getJobById : async function (jobId) {
-      const jobKey = datastore.key ([KUJOMAN_JOB_TEMPLATE, jobId]);
+      const jobKey = datastore.key ([JobConst.DB_KUJOMAN_JOB_TEMPLATE, jobId]);
       let jobResult = (await datastore.get (jobKey))[0];
       jobResult.id = jobResult[datastore.KEY].name;
       return jobResult;
     },
 
-
     // -------------------------------------------------------------------------
     // deleteJobById
     // -------------------------------------------------------------------------
     deleteJobById : async function (jobId) {
-      const jobKey = datastore.key ([KUJOMAN_JOB_TEMPLATE, jobId]);
+      const jobKey = datastore.key ([JobConst.DB_KUJOMAN_JOB_TEMPLATE, jobId]);
       let deleteResult = await datastore.delete (jobKey);
 
       // TODO: ensure job has been archived first?

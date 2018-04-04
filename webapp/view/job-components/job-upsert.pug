@@ -1,5 +1,3 @@
-script(src="/static/js/shared/jobtemplate.js")
-
 script#job-upsert(type="text/x-template")
   div
     form(@submit.prevent, :class="{ 'was-validated' : is_form_submitted } ")
@@ -16,6 +14,14 @@ script#job-upsert(type="text/x-template")
           | Please type a job name larger than 6 characters
 
       .form-group
+        label Description
+        textarea#job-template.form-control(
+          type='text',
+          placeholder='Describe what this job template is for...',
+          v-model="local_job_description"
+        )
+
+      .form-group
         label Kubernets Job Template (use YAML):
         .alert.alert-warning(v-if="is_template_focused")
           | click outside the textarea to minimize again
@@ -26,7 +32,8 @@ script#job-upsert(type="text/x-template")
           v-model="local_job_template",
           :class="{ 'large-template': is_template_focused }"
           @focus="is_template_focused = true",
-          @blur="is_template_focused = false; updateVariablesFromJobTemplate()"
+          @blur="is_template_focused = false; updateVariablesFromJobTemplate()",
+          style="min-height: 12em;"
         )
         div.row
           .col-8
@@ -99,13 +106,21 @@ script#job-upsert(type="text/x-template")
 script.
   const JobUpsertComponent = Vue.component ('job-upsert', {
     template : '#job-upsert',
-    props : ['is_update', 'job_id', 'job_name', 'job_template', 'job_variables'],
+    props : [
+      'is_update',
+      'job_id',
+      'job_name',
+      'job_description',
+      'job_template',
+      'job_variables'
+    ],
     data : function () {
       return {
         action_in_progress : false,
         is_form_submitted : false,
         is_template_focused : false,
         local_job_name : this.job_name,
+        local_job_description : this.job_description,
         local_job_template : this.job_template,
         local_job_variables : this.job_variables,
 
@@ -118,6 +133,9 @@ script.
     watch : {
       job_name (val) {
         this.local_job_name = val;
+      },
+      job_description (val) {
+        this.local_job_description = val;
       },
       job_template (val) {
         this.local_job_template = val;
@@ -134,6 +152,9 @@ script.
       },
       local_job_name (val) {
         this.$emit ('update-job-name', val);
+      },
+      local_job_description (val) {
+        this.$emit ('update-job-description', val);
       },
       local_job_template (val) {
         this.$emit ('update-job-template', val);
@@ -196,9 +217,10 @@ script.
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              name      : self.local_job_name,
-              template  : self.local_job_template,
-              variables : self.getCleanVariables()
+              name        : self.local_job_name,
+              description : self.local_job_description,
+              template    : self.local_job_template,
+              variables   : self.getCleanVariables()
             })
           })
           .then(res => res.json())
@@ -229,10 +251,11 @@ script.
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              id        : self.job_id,
-              name      : self.local_job_name,
-              template  : self.local_job_template,
-              variables : self.getCleanVariables()
+              id          : self.job_id,
+              name        : self.local_job_name,
+              description : self.local_job_description,
+              template    : self.local_job_template,
+              variables   : self.getCleanVariables()
             })
           })
           .then(res => res.json())
@@ -264,10 +287,13 @@ script.
         fetch('/api/jobs/archive/' + this.job_id)
           .then(res => res.json())
           .then(res => {
-            self.action_in_progress = false;
 
-            if (res.ok)
-              self.$emit ('refresh-jobs', '/archived');
+            if (res.ok) {
+              setTimeout (() => {
+                self.action_in_progress = false;
+                self.$emit ('refresh-jobs', '/archived');
+              }, 500);
+            }
             else
               self.error_message = res.message;
           });

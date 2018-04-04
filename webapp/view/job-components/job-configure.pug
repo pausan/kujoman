@@ -8,6 +8,9 @@ script#job-configure(type="text/x-template")
       :job_name="job_name",
       @update-job-name="updateJobName"
 
+      :job_description="job_description",
+      @update-job-description="updateJobDescription"
+
       :job_template="job_template",
       @update-job-template="updateJobTemplate"
 
@@ -26,6 +29,7 @@ script.
         data_changed : false,
         job_id : false,
         job_name : '',
+        job_description : '',
         job_template : '',
         job_variables : []
       };
@@ -35,18 +39,19 @@ script.
     },
     watch: {
       // reload data if users selects another job
-      "$route.params.job_name" : function() {
+      "$route.params.job_id" : function() {
         this.fetchJobInfo()
       }
     },
     methods : {
       fetchJobInfo : function () {
         const self = this;
-        fetch('/api/jobs/get/' + this.$route.params.job_name).then (function (response) {
+        fetch('/api/jobs/get/' + this.$route.params.job_id).then (function (response) {
           // (response.status === 200)
           response.json().then (function (job) {
             self.job_id = job.id;
             self.job_name = job.name;
+            self.job_description = job.description;
             self.job_template = job.template;
             Vue.set (self, 'job_variables', job.variables);
             self.data_changed = false;
@@ -62,6 +67,10 @@ script.
         if (this.job_name != val)
           this.data_changed = true;
       },
+      updateJobDescription (val) {
+        if (this.job_description != val)
+          this.data_changed = true;
+      },
       updateJobTemplate (val) {
         if (this.job_template != val)
           this.data_changed = true;
@@ -72,9 +81,8 @@ script.
       }
     },
 
-    /*
     // before navigating away, make sure the user is not going to lose changes
-    beforeRouteLeave : function (to, from, next) {
+    /*beforeRouteLeave : function (to, from, next) {
       if (!this.data_changed) {
         return next();
       }

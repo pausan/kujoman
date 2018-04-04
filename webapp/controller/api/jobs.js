@@ -4,6 +4,8 @@
 'use strict';
 
 module.exports = function jobs (context) {
+  const JobTemplate = require ('../../static/js/shared/jobtemplate.js');
+
   return {
     createJob : async function (req, resp) {
       const author = "unknown"; // TODO: get from logged account
@@ -12,14 +14,15 @@ module.exports = function jobs (context) {
         if (req.body.name.length <= 6)
           throw "Name should contain at least 6 characters";
 
-        const job_id = await context.model.jobs.createJob (
+        const jobId = await context.model.jobs.createJob (
           req.body.name,
+          req.body.description,
           author,
           req.body.template,
           req.body.variables
         );
 
-        resp.json ({ ok: (job_id !== false), id : job_id });
+        resp.json ({ ok: (jobId !== false), id : jobId });
       }
       catch (e) {
         resp.json ({ ok : false, message : e.toString() });
@@ -36,6 +39,7 @@ module.exports = function jobs (context) {
         const ok = await context.model.jobs.updateJob (
           req.body.id,
           req.body.name,
+          req.body.description,
           author,
           req.body.template,
           req.body.variables
@@ -76,6 +80,46 @@ module.exports = function jobs (context) {
     getJobById : async function (req, resp) {
       const job = await context.model.jobs.getJobById (req.params.id);
       resp.json (job);
+    },
+
+    expandAndRunJobs : async function (req, resp) {
+      const jobId = req.params.id;
+      const jobTemplate = req.body.template;
+      const jobVariable = req.body.variables;
+      const author = "unknown"; // TODO: get from logged account
+
+      try {
+        const expandedJobs = JobTemplate.jobTemplateExpandVariables (
+          jobTemplate,
+          jobVariable
+        );
+
+        let jobExecutionIds = [];
+        for (let i = 0; i < expandedJobs.length; i++) {
+          const id = await context.model.jobexecutions.enqueueKubernetesJob (
+            jobId,
+            author,
+            expandedJobs[i]
+          );
+
+          if (id !== false) {
+            jobExecutionIds.push (id);
+          }
+          else {
+            // FIXME! error
+          }
+        }
+
+        // TODO: enqueue in pub/sub
+        // for (let i = 0; i < jobExecutionIds.length; i++) {
+        //   FIXME!
+        // }
+
+        resp.json({ ok : true, njobs : expandedJobs.length })
+      }
+      catch (e) {
+        resp.json({ ok : false, message : e.toString() })
+      }
     }
   };
 }

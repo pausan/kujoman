@@ -12,6 +12,8 @@ module.exports = function routeExports (context) {
   app.all ('/api/jobs/archive/:id', context.controller.api.jobs.archiveJobById);
   app.all ('/api/jobs/unarchive/:id', context.controller.api.jobs.unarchiveJobById);
 
+  app.post ('/api/jobs/run/:id', context.controller.api.jobs.expandAndRunJobs);
+
   app.get ('/api/jobs/all', context.controller.api.jobs.getAllJobs);
   app.get ('/api/jobs/all-archived', context.controller.api.jobs.getArchivedJobs);
   app.get ('/api/jobs/get/:id', context.controller.api.jobs.getJobById);
