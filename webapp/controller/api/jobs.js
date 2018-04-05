@@ -94,21 +94,11 @@ module.exports = function jobs (context) {
           jobVariable
         );
 
-        let jobExecutionIds = [];
-        for (let i = 0; i < expandedJobs.length; i++) {
-          const id = await context.model.jobexecutions.enqueueKubernetesJob (
-            jobId,
-            author,
-            expandedJobs[i]
-          );
-
-          if (id !== false) {
-            jobExecutionIds.push (id);
-          }
-          else {
-            // FIXME! error
-          }
-        }
+        const jobExecutionIds = await context.model.jobexecutions.enqueueMultipleKubernetesJob (
+          jobId,
+          author,
+          expandedJobs
+        );
 
         // TODO: enqueue in pub/sub
         // for (let i = 0; i < jobExecutionIds.length; i++) {

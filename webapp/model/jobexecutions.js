@@ -13,49 +13,68 @@ module.exports = function jobs (context) {
 
   return {
     // -------------------------------------------------------------------------
-    // enqueueKubernetesJob
+    // enqueueMultipleKubernetesJob
+    //
+    // Returns a list of job execution ids.
+    //
+    // NOTE: avoid using this method inside a loop, because of stats
     // -------------------------------------------------------------------------
-    enqueueKubernetesJob : async function (
-      job_id,
+    enqueueMultipleKubernetesJob : async function (
+      jobId,
       author,
-      job_yaml
+      jobYamlArray
     )
     {
-      const jobExecutionKey  = uuid4();
-      const jobExecutionData = {
-        job_id         : job_id,
-        created_at     : new Date(),
-        created_by     : author,  // person who created this job execution
+      let jobExecutionIds = [];
+      let dsInserts = [];
 
-        updated_at     : new Date(),
+      for (let i = 0; i < jobYamlArray.length; i++) {
+        const jobExecutionId = uuid4();
+        const jobExecutionData = {
+          job_id         : jobId,
+          created_at     : new Date(),
+          created_by     : author,  // person who created this job execution
 
-        type           : JobConst.JOB_TYPE_KUBERNETES,
-        parameters     : job_yaml,
-        status         : JobConst.JOB_STATUS_WAITING,
-        archived       : false,
+          updated_at     : new Date(),
 
-        // k8s specific fields
-        k8s_id          : '',
+          type           : JobConst.JOB_TYPE_KUBERNETES,
+          parameters     : jobYamlArray,
+          status         : JobConst.JOB_STATUS_WAITING,
+          archived       : false,
 
-        k8s_started_at  : 0,
-        k8s_finished_at : 0,
+          // k8s specific fields
+          k8s_id          : '',
 
-        k8s_retries     : 0,
-        k8s_stdout      : '',
-        k8s_stderr      : ''
-      };
+          k8s_started_at  : 0,
+          k8s_finished_at : 0,
 
-      const dsKey = datastore.key([JobConst.DB_KUJOMAN_JOB_EXECUTION, jobExecutionKey]);
+          k8s_retries     : 0,
+          k8s_stdout      : '',
+          k8s_stderr      : ''
+        };
+
+        const dsKey = datastore.key([JobConst.DB_KUJOMAN_JOB_EXECUTION, jobExecutionId]);
+
+        dsInserts.push (
+          datastore.insert ({key : dsKey, data : jobExecutionData})
+        );
+        jobExecutionIds.push (jobExecutionId);
+      }
 
       try {
-        await datastore.insert ({key : dsKey, data : jobExecutionData});
-        return jobExecutionData;
+        await Promise.all (dsInserts)
       }
       catch (e) {
         console.log ("Exception: " + e); // FIXME!
       }
 
-      return false;
+      context.model.jobexecutionstats.incrementStatusCountForJobId (
+        jobId,
+        JobConst.JOB_STATUS_WAITING,
+        jobYamlArray.length
+      );
+
+      return jobExecutionIds;
     },
   };
 };

@@ -134,11 +134,11 @@ module.exports = function jobs (context) {
       let jobQueryResult = (await datastore.runQuery(query))[0];
 
       let results = [];
-      jobQueryResult.forEach(job => {
+      for (const job of jobQueryResult) {
         job.id = job[datastore.KEY].name;
-        job.stats = context.model.jobstats.getStatsByJobId (job.id);
+        job.stats = await context.model.jobexecutionstats.getStatsByJobId (job.id);
         results.push (job);
-      });
+      }
       return results;
     },
 
@@ -154,11 +154,11 @@ module.exports = function jobs (context) {
       let jobQueryResult = (await datastore.runQuery(query))[0];
 
       let results = [];
-      jobQueryResult.forEach(job => {
+      for (const job of jobQueryResult) {
         job.id = job[datastore.KEY].name;
-        job.stats = context.model.jobstats.getStatsByJobId (job.id);
+        job.stats = await context.model.jobexecutionstats.getStatsByJobId (job.id);
         results.push (job);
-      });
+      }
       return results;
     },
 
@@ -167,8 +167,15 @@ module.exports = function jobs (context) {
     // -------------------------------------------------------------------------
     getJobById : async function (jobId) {
       const jobKey = datastore.key ([JobConst.DB_KUJOMAN_JOB_TEMPLATE, jobId]);
-      let jobResult = (await datastore.get (jobKey))[0];
-      jobResult.id = jobResult[datastore.KEY].name;
+      let jobResult = {};
+
+      try {
+        jobResult = (await datastore.get (jobKey))[0];
+        jobResult.id = jobResult[datastore.KEY].name;
+      }
+      catch (e) {
+        // ignore
+      }
       return jobResult;
     },
 
@@ -177,7 +184,13 @@ module.exports = function jobs (context) {
     // -------------------------------------------------------------------------
     deleteJobById : async function (jobId) {
       const jobKey = datastore.key ([JobConst.DB_KUJOMAN_JOB_TEMPLATE, jobId]);
-      let deleteResult = await datastore.delete (jobKey);
+
+      try {
+        await datastore.delete (jobKey);
+      }
+      catch (e) {
+        // do nothing
+      }
 
       // TODO: ensure job has been archived first?
 

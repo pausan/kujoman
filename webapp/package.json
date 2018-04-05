@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha",
-    "nodemon": "nodemon -V -e js,json,pug,vue index.js"
+    "nodemon": "nodemon -V -e js,json,pug,vue --trace-warnings index.js"
   },
   "nodemonConfig": {
     "ignore": [
