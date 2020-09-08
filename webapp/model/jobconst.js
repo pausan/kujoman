@@ -7,7 +7,6 @@ module.exports = {
 
   JOB_STATUS_WAITING    : 'waiting',    // waiting to run
   JOB_STATUS_RUNNING    : 'running',    // running already
-  JOB_STATUS_RETRYING   : 'retrying',   // failed X times, retrying
   JOB_STATUS_STOPPED    : 'stopped',    // should not run (yet)
   JOB_STATUS_SUCCESSFUL : 'successful', // completed successfully
   JOB_STATUS_FAILED     : 'failed',     // failed!

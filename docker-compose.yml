@@ -1,0 +1,15 @@
+version: '2'
+
+services:
+  kujoman:
+    build: .
+    environment:
+      CLOUD_PROVIDER:      "gcloud"
+      GCLOUD_PROJECT:      "myproject"
+      GCLOUD_GKE_CLUSTER:  "mycluster"
+
+      DATASTORE_EMULATOR_HOST: "localhost:8081"
+
+    #volumes:
+      # local development mapping
+      # - ~/.config/gcloud:/root/.config/gcloud

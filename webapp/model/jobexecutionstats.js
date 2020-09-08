@@ -94,7 +94,6 @@ module.exports = function jobstats (context) {
       let counters = {};
       counters[JobConst.JOB_STATUS_WAITING]    = 0;
       counters[JobConst.JOB_STATUS_RUNNING]    = 0;
-      counters[JobConst.JOB_STATUS_RETRYING]   = 0;
       counters[JobConst.JOB_STATUS_STOPPED]    = 0;
       counters[JobConst.JOB_STATUS_SUCCESSFUL] = 0;
       counters[JobConst.JOB_STATUS_FAILED]     = 0;

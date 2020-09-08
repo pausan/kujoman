@@ -1,0 +1,107 @@
+script#job-configure(type="text/x-template")
+  div
+    app-content-title(:title="'Configure ' + job.name + ' (' + job.id + ')'")
+
+    form(@submit.prevent, v-if="job")
+      .form-group
+        label Job Name:
+        input#job-display-name.form-control(type='text', placeholder='Enter job name...', v-model="job.name")
+
+      .form-group
+        label Kubernets Job Template (use YAML):
+        .alert.alert-warning(v-if="template_focused")
+          | click outside the textarea to minimize again
+        textarea#job-template.form-control(
+          type='text',
+          placeholder='write your kubernetes YAML job template here...',
+          v-model="job.template",
+          :class="{ 'large-template': template_focused }"
+          @focus="template_focused = true",
+          @blur="template_focused = false"
+        )
+        div.row
+          span.col-sm-10
+            | Use uppercase {VARS} with no spaces to define template variables
+
+          a.col-sm-2(href="https://kubernetes.io/docs/concepts/workloads/controllers/jobs-run-to-completion/", target="_blank")
+            | Kubernetes Job Syntax
+
+      .form-group
+        label Template Variables:
+        .alert.alert-danger(v-if="undefined_template_variables.length > 0")
+          | Undefined template variables:
+          ul.no-margin
+            li(v-for="tvar in undefined_template_variables")
+              | {{ tvar }}
+
+        .alert.alert-info
+          .form-row
+            .col-2
+              label Name:
+
+            .col-2
+              label Type:
+
+            .col-2
+              label Default Value:
+
+          .form-row(v-for="tvar in job.template_variables")
+            .col-2
+              label {{ tvar.name }}
+
+            .col-2
+              select.form-control(v-model="tvar.type")
+                option(value="date") date (yyyy-mm-dd)
+                option(value="integer") integer
+                option(value="string") string
+                option(value="date_range") date range (yyyy-mm-dd)
+                option(value="integer_range") integer range
+
+            .col-2
+              input.form-control(v-model="tvar.default")
+
+    .row
+      .col
+        .btn.btn-large.btn-success.mr-4
+          i.fas.fa-save Save
+
+        .btn.btn-large.btn-danger
+          i.fas.fa-trash Delete
+
+script.
+  const JobConfigureComponent = Vue.component ('job-configure', {
+    template : '#job-configure',
+    data : function () {
+      return {
+        template_focused : false,
+        undefined_template_variables : ['MYVAR1', 'MYVAR2'],
+        job : false,
+      };
+    },
+    created : function () {
+      this.fetchJobInfo()
+    },
+    watch: {
+      // reload data if users selects another job
+      "$route.params.job_id" : function() {
+        this.fetchJobInfo()
+      }
+    },
+    methods : {
+      fetchJobInfo : function () {
+        const self = this;
+        fetch('/api/jobs/get/' + this.$route.params.job_id).then (function (response) {
+          // (response.status === 200)
+          response.json().then (function (data) {
+            self.job = data;
+          })
+        });
+      },
+      enlargeTemplateHeight : function () {
+        console.log ("Got focus!!")
+      },
+      restoreTemplateHeight : function () {
+        console.log ("Got restoreTemplateHeight!!")
+      }
+    }
+  });

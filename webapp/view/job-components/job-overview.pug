@@ -1,13 +1,83 @@
 
 script#job-overview(type="text/x-template")
   div
-    | job overview! {{ $route.params.job_id }}
-    pre.
-      Kujoman > MyFirstJob > Overview
+    app-content-title(:title="'Overview ' + job.name + ' (' + job.id + ')'")
 
-      Filter: [x] Running (_only_)   [ ] Pending (_only_)   [x] Successful (_only_)   [ ] Failed (_only_)
+    .row
+      .col
+        .col-1.form-check.form-check-inline
+          label.form-check-label Filter:
 
-              o Today | * This Week | o This Month | o Last 7 days | o Last 30 days | o Last 90 days | o Always  <-- select?
+        .col-1.form-check.form-check-inline(v-for="status in status_list")
+          input.form-check-input(
+            :id="status.value",
+            type="radio",
+            :value="status.value",
+            v-model="selected_status"
+          )
+
+          label.form-check-label(:for="status.value")
+            | {{ status.name }}
+
+    .row
+      .col
+        .col-1.form-check.form-check-inline
+
+        .col-1.form-check.form-check-inline(v-for="period in period_list")
+          input.form-check-input(
+            :id="period.value",
+            type="radio",
+            :value="period.value",
+            name="period",
+            v-model="selected_period"
+          )
+          label.form-check-label(:for="period.value") {{ period.name }}
+
+    .row.mt-4
+      .col
+        table.table
+          thead.thead-dark
+            tr
+              th Job Id
+              th Start Time
+              th Duration
+              th Retries
+              th Status
+              th Actions
+          // tfoot
+            tr
+              td(colspan="7", style="text-align: right")
+                .btn-group
+                  .btn.btn-outline-primary
+                    i.fas.fa-chevron-left
+
+                  .btn.btn-outline-primary
+                    i.fas.fa-chevron-right
+
+          tbody
+            tr(v-for="job in job_execution_list")
+              th {{ job.job_id }}
+              th {{ job.started_at }}
+              th {{ job.duration }}
+              th {{ job.retries }}
+              th
+                .badge.badge-pill(:class="'badge-' + status_badges[job.status]", style="width: 8rem")
+                  | {{ job.status }}
+              th
+                .btn-group
+                  .btn.btn-sm.btn-primary(title="View Job Details")
+                    i.fas.fa-eye
+                  .btn.btn-sm.btn-primary(title="Rerun Job")
+                    i.fas.fa-redo
+                  .btn.btn-sm.btn-primary(title="Prepare in Job Runner")
+                    i.fas.fa-tasks
+                  .btn.btn-sm.btn-danger(title="Cancel Job")
+                    i.fas.fa-ban
+                  .btn.btn-sm.btn-danger(title="Delete Job from history")
+                    i.fas.fa-trash
+    //-
+      pre.
+
 
       +---------+---------------------+---------------------+----------+---------+-------------------------------+
       | Job Id  | Time Started        | Time Finished       | Duration | Status  | Actions                       |
@@ -26,7 +96,7 @@ script#job-overview(type="text/x-template")
       Notes: this view is displayed using the database
       _Details_ -> go to Single Job View
       _Clone_   -> go to Runner and preinitialize variables, but don't schedule
-      _Reschedule_ -> if a job failed the user should be able to reschedule it (which is equivalent to Clone->Run)
+      _Retry_   -> if a job failed the user should be able to reschedule it (which is equivalent to Clone->Run)
                       Set status as FailedAndRescheduled
 
       Allow bulk actions (bulk remove pending, RescheduleFailed, ...)
@@ -35,6 +105,93 @@ script#job-overview(type="text/x-template")
 script.
   // NOTE: reference job-view when clicking a particular job
   const JobOverviewComponent = Vue.component ('job-overview', {
-    template : '#job-overview'
+    template : '#job-overview',
+    data : function () {
+      return {
+        job : {
+          id : '',
+          name : ''
+        },
+        selected_period : 'lastweek',
+        selected_status : 'all',
+        status_list : [
+          { name: 'All',        value : 'all' },
+          { name: 'Waiting',    value : 'waiting' },
+          { name: 'Running',    value : 'running' },
+          { name: 'Stopped',    value : 'stopped' },
+          { name: 'Success',    value : 'successful' },
+          { name: 'Failed',     value : 'failed'  }
+        ],
+        status_badges : {
+          'waiting'    : 'secondary',
+          'running'    : 'primary',
+          'retrying'   : 'warning',
+          'stopped'    : 'dark',
+          'successful' : 'success',
+          'failed'     : 'danger',
+        },
+        period_list : [
+          { name: 'Last 24h',   value : 'lastday' },
+          { name: 'Last Week',  value : 'lastweek' },
+          { name: 'Last Month', value : 'lastmonth' },
+          { name: 'Last Year',  value : 'lastyear' },
+          { name: 'All Times',  value : 'alltimes'  }
+        ],
+
+        job_execution_list : []
+      };
+    },
+    created : function () {
+      this.fetchJobTemplate (this.$route.params.job_id);
+      this.fetchJobExecutionsWithFilters ();
+    },
+    watch : {
+      "selected_status" : function () {
+        this.fetchJobExecutionsWithFilters();
+      },
+
+      "selected_period" : function () {
+        this.fetchJobExecutionsWithFilters();
+      },
+
+      // reload data if users selects another job
+      "$route.params.job_id" : function () {
+        this.fetchJobTemplate($route.params.job_id)
+      },
+    },
+
+    methods : {
+      // -----------------------------------------------------------------------
+      // fetchJobTemplate
+      // -----------------------------------------------------------------------
+      fetchJobTemplate (jobId) {
+        const self = this;
+        fetch('/api/jobs/get/' + jobId).then (function (response) {
+          // (response.status === 200)
+          response.json().then (function (data) {
+            self.job = data;
+          });
+        });
+      },
+
+      // -----------------------------------------------------------------------
+      // fetchJobExecutionsWithFilters
+      // -----------------------------------------------------------------------
+      fetchJobExecutionsWithFilters () {
+        let self = this;
+        const data = {
+          'status' : this.selected_status,
+          'period' : this.selected_period
+        };
+
+        const url = '/api/jobexecutions/filter?' + (new URLSearchParams(Object.entries(data)));
+        fetch(url).then (function (response) {
+          // (response.status === 200)
+          response.json().then (function (data) {
+            self.job_execution_list = data;
+          });
+        });
+      }
+    }
   });
 

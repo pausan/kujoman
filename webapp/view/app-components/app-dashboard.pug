@@ -10,7 +10,6 @@ script#app-dashboard(type="text/x-template")
             th Job Name
             th # Waiting
             th # Running
-            th # Retrying
             th # Stopped
             th # Failed
             th # Successful
@@ -20,7 +19,6 @@ script#app-dashboard(type="text/x-template")
             td {{ job.name }}
             td {{ job.stats.waiting }}
             td {{ job.stats.running }}
-            td {{ job.stats.retrying }}
             td {{ job.stats.stopped }}
             td {{ job.stats.failed }}
             td {{ job.stats.successful }}

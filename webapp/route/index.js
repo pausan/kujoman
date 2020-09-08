@@ -18,6 +18,10 @@ module.exports = function routeExports (context) {
   app.get ('/api/jobs/all-archived', context.controller.api.jobs.getArchivedJobs);
   app.get ('/api/jobs/get/:id', context.controller.api.jobs.getJobById);
 
+  app.get ('/api/jobexecutions/filter', context.controller.api.jobexecutions.getFilteredJobExecutions);
+  //app.get ('/api/jobexecutions/get/:id', context.controller.api.jobs.getJobById);
+
+
   app.get ('/api/settings', context.controller.api.settings.getSettings);
 
   // we use HTML5 history mode on the frontend, so we should always show

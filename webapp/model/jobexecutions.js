@@ -39,18 +39,20 @@ module.exports = function jobs (context) {
 
           type           : JobConst.JOB_TYPE_KUBERNETES,
           parameters     : jobYamlArray,
-          status         : JobConst.JOB_STATUS_WAITING,
           archived       : false,
 
+          // generic task-related information
+          status         : JobConst.JOB_STATUS_WAITING,
+
+          started_at     : 0,
+          finished_at    : 0,
+
+          retries        : 0,
+          stdout         : '',
+          stderr         : '',
+
           // k8s specific fields
-          k8s_id          : '',
-
-          k8s_started_at  : 0,
-          k8s_finished_at : 0,
-
-          k8s_retries     : 0,
-          k8s_stdout      : '',
-          k8s_stderr      : ''
+          k8s_id         : ''
         };
 
         const dsKey = datastore.key([JobConst.DB_KUJOMAN_JOB_EXECUTION, jobExecutionId]);
@@ -76,5 +78,54 @@ module.exports = function jobs (context) {
 
       return jobExecutionIds;
     },
+
+    // -------------------------------------------------------------------------
+    // filterJobExecutions
+    //
+    // Returns a list of jobs that met given criteria.
+    // -------------------------------------------------------------------------
+    async filterJobExecutions (desiredStatus = [], updatedAfter = null) {
+      // prepare the query
+      const query = datastore.createQuery (JobConst.DB_KUJOMAN_JOB_EXECUTION);
+
+      if (desiredStatus)
+        query.filter('status', '=', desiredStatus);
+
+      if (updatedAfter)
+        query.filter('updated_at', '>', updatedAfter)
+
+      query.order('updated_at', { ascending : false });
+
+      // do the query
+      let results = [];
+      try {
+        let jobQueryResult = (await datastore.runQuery(query))[0];
+        this.fixDurationValues (jobQueryResult)
+        return jobQueryResult;
+      }
+      catch (e) {
+        console.log (e);
+      }
+
+      return [];
+    },
+
+    // -------------------------------------------------------------------------
+    // Set 'duration' value based on started_at and finished_at. In case the
+    // task is not finished, then use current time.
+    // -------------------------------------------------------------------------
+    fixDurationValues (rows) {
+      const now = (new Date());
+      for (const row of rows) {
+        row.duration = 0;
+
+        if (row.started_at && row.finished_at) {
+          row.duration = row.finished_at - row.started_at;
+        }
+        else if (row.started_at) {
+          row.duration = now - row.started_at;
+        }
+      }
+    }
   };
 };
