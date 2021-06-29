@@ -1,6 +1,9 @@
-# kujoman
+# kujoman (end of life)
 
 kujoman stands for Kubernetes Job Manager.
+
+**IMPORTANT: this project is not actively developed anymore**
+I started this project to explore the possibilities of using kubernetes as a generic job manager. It does have some interesting features in the user interface to expand jobs, etc... but probably a little bit outdated nowadays. I won't be maintaining this project anymore. Feel free to fork and expand on it (keeping the same or a compatible license) if you want to expand on it.
 
 ## Introduction
 
@@ -16,8 +19,6 @@ as the database (both NoSQL or Relational will be fine) and ActiveMQ/RabbitMQ/Ce
 as a queue.
 
 NOTE: GCloud Storage can also be used for logging results.
-
-
 
 ## Development notes
 
